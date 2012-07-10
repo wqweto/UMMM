@@ -1,0 +1,10 @@
+## VB6 workspace
+
+*.vbw
+*.bak
+*.log
+*.scc
+_del
+*.zip
+mt.exe
+dreem.ini
