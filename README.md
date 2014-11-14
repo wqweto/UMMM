@@ -111,5 +111,5 @@ Appends `dpiAware` tag for custom DPI aware applications.
 Appends `supportedOS` tag.
 
     Parameters       <os_type> [os_type #2] [os_type #3] ...
-      os_type        one of { vista, win7, win8, win81 } or raw GUID as specified by 
-                     Microsoft. Multiple OSes can be included in a manifest
+      os_type        one of { vista, win7, win8, win81, win10 } or raw GUID as specified
+                     by Microsoft. Multiple OSes can be included in a manifest

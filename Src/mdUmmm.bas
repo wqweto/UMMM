@@ -1,12 +1,15 @@
 Attribute VB_Name = "mdUmmm"
 '=========================================================================
-' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 13    14.11.14 19:48 Wqw $
+' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 14    14.11.14 20:02 Wqw $
 '
 '   Unattended Make My Manifest Project
 '   Copyright (c) 2009-2011 wqweto@gmail.com
 '
 ' $Log: /BuildTools/UMMM/Src/mdUmmm.bas $
 ' 
+' 14    14.11.14 20:02 Wqw
+' REF: win10 support
+'
 ' 13    14.11.14 19:48 Wqw
 ' REF: impl var arg for supported oses
 '
@@ -521,6 +524,8 @@ Private Function pvDumpSupportedOs(vRow As Variant, cOutput As Collection) As Bo
             sGuid = "{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}"
         Case "win81"
             sGuid = "{1f676c76-80e1-4239-95bb-83d0f6d0da78}"
+        Case "win10"
+            sGuid = "{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"
         Case Else
             '--- this has to be properly escaped attribute value
             sGuid = At(vRow, lIdx)
