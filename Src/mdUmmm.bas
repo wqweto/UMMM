@@ -1,12 +1,15 @@
 Attribute VB_Name = "mdUmmm"
 '=========================================================================
-' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 12    9.12.11 18:00 Wqw $
+' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 13    14.11.14 19:48 Wqw $
 '
 '   Unattended Make My Manifest Project
 '   Copyright (c) 2009-2011 wqweto@gmail.com
 '
 ' $Log: /BuildTools/UMMM/Src/mdUmmm.bas $
 ' 
+' 13    14.11.14 19:48 Wqw
+' REF: impl var arg for supported oses
+'
 ' 12    9.12.11 18:00 Wqw
 ' REF: dump only dispatch kind interfaces
 '
@@ -58,6 +61,10 @@ Private Declare Function GetTempFileName Lib "kernel32" Alias "GetTempFileNameA"
 Private Declare Function GetStdHandle Lib "kernel32" (ByVal nStdHandle As Long) As Long
 Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, lpOverlapped As Any) As Long
 Private Declare Function CharToOemBuff Lib "user32" Alias "CharToOemBuffA" (ByVal lpszSrc As String, lpszDst As Any, ByVal cchDstLength As Long) As Long
+Private Declare Function GetFileVersionInfo Lib "Version.dll" Alias "GetFileVersionInfoA" (ByVal lptstrFilename As String, ByVal dwhandle As Long, ByVal dwlen As Long, lpData As Any) As Long
+Private Declare Function GetFileVersionInfoSize Lib "Version.dll" Alias "GetFileVersionInfoSizeA" (ByVal lptstrFilename As String, lpdwHandle As Long) As Long
+Private Declare Function VerQueryValue Lib "Version.dll" Alias "VerQueryValueA" (pBlock As Any, ByVal lpSubBlock As String, lplpBuffer As Any, puLen As Long) As Long
+Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 
 '=========================================================================
 ' Constants and member variables
@@ -112,7 +119,7 @@ Public Function Ummm(sParams As String) As Boolean
         '--- success
         Ummm = True
     Else
-        ConsolePrint "usage: UMMM <ini_file> [output_file]" & vbCrLf
+        ConsolePrint "usage: UMMM <ini_file|dll_file> [output_file]" & vbCrLf
     End If
     Exit Function
 EH:
@@ -120,7 +127,7 @@ EH:
     Resume Next
 End Function
 
-Private Function pvProcess(sIniFile As String) As String
+Private Function pvProcess(sFile As String) As String
     Const FUNC_NAME     As String = "pvProcess"
     Dim cOutput         As Collection
     Dim vElem           As Variant
@@ -132,44 +139,56 @@ Private Function pvProcess(sIniFile As String) As String
     Set cOutput = New Collection
     cOutput.Add "<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>"
     cOutput.Add "<assembly xmlns=""urn:schemas-microsoft-com:asm.v1"" manifestVersion=""1.0"" xmlns:asmv3=""urn:schemas-microsoft-com:asm.v3"">"
-    For Each vElem In Split(m_oFSO.OpenTextFile(sIniFile, 1, False, 0).ReadAll(), vbCrLf)
-        If IsEmpty(vElem) Then
-            GoTo QH
-        End If
-        vRow = pvSplitArgs(CStr(vElem))
-        Select Case LCase$(At(vRow, 0))
-        Case "identity"
-            '--- identity <exe_file> [name] [description]
-            '---   exe_file quoted if containing spaces
-            pvDumpIdentity pvCanonicalPath(At(vRow, 1)), At(vRow, 2, "MyAssembly"), At(vRow, 3), cOutput
-        Case "dependency"
-            '--- dependency {<lib_name>|<assembly_dll>} [version] [/update]
-            '---   lib_name in { comctl, vc90crt, vc90mfc }
-            pvDumpDependency At(vRow, 1), At(vRow, 2), cOutput
-        Case "file"
-            '--- file <file_name> [interfaces] [classes]
-            '---   file_name can be relative to base path from exe_file
-            '---   interfaces are | separated, with or w/o leading underscore
-            pvDumpClasses At(vRow, 1), At(vRow, 3), cOutput
-            pvDumpInterfaces At(vRow, 1), At(vRow, 2), cOutput
-        Case "interface"
-            '--- interface <file_name> <interfaces>
-            pvDumpInterfaces At(vRow, 1), At(vRow, 2), cOutput
-        Case "trustinfo"
-            '--- trustinfo [level] [uiaccess]
-            '---   level in { 1, 2, 3 }
-            '---   uiaccess is true/false or 0/1
-            pvDumpTrustInfo C_Lng(At(vRow, 1, "1")), C_Bool(At(vRow, 2)), cOutput
-        Case "dpiaware"
-            '--- dpiaware [on_off]
-            '---   on_off is true/false or 0/1
-            pvDumpDpiAware C_Bool(At(vRow, 1)), cOutput
-        Case "supportedos"
-            '--- supportedos <os_type>
-            '---   os_type in { vista, win7 }
-            pvDumpSupportedOs At(vRow, 1), cOutput
-        End Select
-    Next
+    Select Case pvGetCliRva(sFile)
+    Case -1
+        '--- not an executable image -> ini file
+        For Each vElem In Split(m_oFSO.OpenTextFile(sFile, 1, False, 0).ReadAll(), vbCrLf)
+            If IsEmpty(vElem) Then
+                GoTo QH
+            End If
+            vRow = pvSplitArgs(CStr(vElem))
+            Select Case LCase$(At(vRow, 0))
+            Case "identity"
+                '--- identity <exe_file> [name] [description]
+                '---   exe_file quoted if containing spaces
+                pvDumpIdentity pvCanonicalPath(At(vRow, 1)), At(vRow, 2), At(vRow, 3), cOutput
+            Case "dependency"
+                '--- dependency {<lib_name>|<assembly_dll>} [version] [/update]
+                '---   lib_name in { comctl, vc90crt, vc90mfc }
+                pvDumpDependency At(vRow, 1), At(vRow, 2), cOutput
+            Case "file"
+                '--- file <file_name> [interfaces] [classes]
+                '---   file_name can be relative to base path from exe_file
+                '---   interfaces are | separated, with or w/o leading underscore
+                pvDumpClasses At(vRow, 1), At(vRow, 3), cOutput
+                pvDumpInterfaces At(vRow, 1), At(vRow, 2), cOutput
+            Case "interface"
+                '--- interface <file_name> <interfaces>
+                pvDumpInterfaces At(vRow, 1), At(vRow, 2), cOutput
+            Case "trustinfo"
+                '--- trustinfo [level] [uiaccess]
+                '---   level in { 1, 2, 3 }
+                '---   uiaccess is true/false or 0/1
+                pvDumpTrustInfo C_Lng(At(vRow, 1, "1")), C_Bool(At(vRow, 2)), cOutput
+            Case "dpiaware"
+                '--- dpiaware [on_off]
+                '---   on_off is true/false or 0/1
+                pvDumpDpiAware C_Bool(At(vRow, 1)), cOutput
+            Case "supportedos"
+                '--- supportedos <os_types>
+                '---   os_types are | separated OSes from { vista, win7, win8, win81 } or guids
+                pvDumpSupportedOs vRow, cOutput
+            End Select
+        Next
+    Case 0
+        '--- native (COM) dll
+        pvDumpIdentity pvCanonicalPath(sFile), vbNullString, vbNullString, cOutput
+        pvDumpClasses pvCanonicalPath(sFile), vbNullString, cOutput
+        pvDumpInterfaces pvCanonicalPath(sFile), "*", cOutput
+    Case Else
+        '--- .net assembly
+        pvDumpDependency pvCanonicalPath(sFile), vbNullString, cOutput
+    End Select
 QH:
     cOutput.Add "</assembly>"
     For Each vElem In cOutput
@@ -186,9 +205,16 @@ Private Function pvDumpIdentity(sFile As String, sName As String, sDesc As Strin
     
     On Error GoTo EH
     If LenB(sFile) <> 0 Then
-        cOutput.Add Printf("    <assemblyIdentity name=""%1"" processorArchitecture=""X86"" type=""win32"" version=""%2"" />", pvXmlEscape(sName), m_oFSO.GetFileVersion(sFile))
+        If LenB(sName) = 0 Then
+            sName = pvGetStringFileInfo(pvCanonicalPath(sFile), "CompanyName")
+            sName = IIf(LenB(sName) <> 0, sName & ".", vbNullString) & pvGetStringFileInfo(pvCanonicalPath(sFile), "InternalName")
+        End If
+        If LenB(sDesc) = 0 Then
+            sDesc = pvGetStringFileInfo(pvCanonicalPath(sFile), "FileDescription")
+        End If
+        cOutput.Add Printf("    <assemblyIdentity name=""%1"" processorArchitecture=""X86"" type=""win32"" version=""%2"" />", pvXmlEscape(Zn(sName, "noname")), Zn(m_oFSO.GetFileVersion(sFile), "1.0.0.0"))
     End If
-    If LenB(sDesc) <> 0 Then
+    If LenB(Trim$(sDesc)) <> 0 Then
         cOutput.Add Printf("    <description>%1</description>", pvXmlEscape(sDesc))
     End If
     m_sBasePath = Left$(sFile, InStrRev(sFile, "\") - 1)
@@ -273,7 +299,6 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As C
     Dim sMiscStatus     As String
     Dim lIdx            As Long
     Dim vSplit          As Variant
-    Dim vElem           As Variant
     
     On Error GoTo EH
     If Not pvFileExists(pvCanonicalPath(sFile)) Then
@@ -478,30 +503,36 @@ EH:
     Resume Next
 End Function
 
-Private Function pvDumpSupportedOs(sOsType As String, cOutput As Collection) As Boolean
+Private Function pvDumpSupportedOs(vRow As Variant, cOutput As Collection) As Boolean
     Const FUNC_NAME     As String = "pvDumpSupportedOs"
-    Dim sOutput         As String
+    Dim lIdx            As Long
+    Dim sGuid           As String
     
     On Error GoTo EH
-    Select Case LCase$(sOsType)
-    Case "vista"
-        sOutput = "<supportedOS Id=""{e2011457-1546-43c5-a5fe-008deee3d3f0}""/>"
-    Case "win7"
-        sOutput = "<supportedOS Id=""{35138b9a-5d96-4fbd-8e2d-a2440225f93a}""/>"
-    Case "win8"
-        sOutput = "<supportedOS Id=""{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}""/>"
-    Case "win81"
-        sOutput = "<supportedOS Id=""{1f676c76-80e1-4239-95bb-83d0f6d0da78}""/>"
-    End Select
-    If LenB(sOutput) <> 0 Then
-        cOutput.Add "    <compatibility xmlns=""urn:schemas-microsoft-com:compatibility.v1"">"
-        cOutput.Add "        <application>"
-        cOutput.Add "            " & sOutput
-        cOutput.Add "        </application>"
-        cOutput.Add "    </compatibility>"
-        '--- success
-        pvDumpSupportedOs = True
-    End If
+    cOutput.Add "    <compatibility xmlns=""urn:schemas-microsoft-com:compatibility.v1"">"
+    cOutput.Add "        <application>"
+    For lIdx = 1 To UBound(vRow)
+        Select Case LCase$(At(vRow, lIdx))
+        Case "vista"
+            sGuid = "{e2011457-1546-43c5-a5fe-008deee3d3f0}"
+        Case "win7"
+            sGuid = "{35138b9a-5d96-4fbd-8e2d-a2440225f93a}"
+        Case "win8"
+            sGuid = "{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}"
+        Case "win81"
+            sGuid = "{1f676c76-80e1-4239-95bb-83d0f6d0da78}"
+        Case Else
+            '--- this has to be properly escaped attribute value
+            sGuid = At(vRow, lIdx)
+        End Select
+        If LenB(sGuid) <> 0 Then
+            cOutput.Add Printf("            <supportedOS Id=""%1""/>", sGuid)
+        End If
+    Next
+    cOutput.Add "        </application>"
+    cOutput.Add "    </compatibility>"
+    '--- success
+    pvDumpSupportedOs = True
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -792,3 +823,54 @@ Private Function pvLookupArray(vSplit As Variant, sName As String) As Boolean
     Next
 End Function
 
+Private Function pvGetStringFileInfo(sFile As String, sKey As String) As String
+    Dim lSize           As Long
+    Dim baBuffer()      As Byte
+    Dim lPtr            As Long
+    Dim lCharset        As Long
+    
+    lSize = GetFileVersionInfoSize(sFile, 0)
+    ReDim baBuffer(0 To lSize)
+    If GetFileVersionInfo(sFile, 0, UBound(baBuffer), baBuffer(0)) = 0 Then
+        GoTo QH
+    End If
+    If VerQueryValue(baBuffer(0), "\VarFileInfo\Translation", lPtr, lSize) = 0 Then
+        GoTo QH
+    End If
+    Call CopyMemory(ByVal VarPtr(lCharset) + 2, ByVal lPtr, 2)
+    Call CopyMemory(ByVal VarPtr(lCharset) + 0, ByVal lPtr + 2, 2)
+    lSize = 0
+    If VerQueryValue(baBuffer(0), "\StringFileInfo\" & Right$(String$(8, "0") & Hex(lCharset), 8) & "\" & sKey, lPtr, lSize) = 0 Then
+        GoTo QH
+    End If
+    If lSize > 0 Then
+        pvGetStringFileInfo = String$(lSize - 1, 0)
+        Call CopyMemory(ByVal pvGetStringFileInfo, ByVal lPtr, lSize)
+    End If
+QH:
+End Function
+
+Private Function pvPeekFile(sFile As String, ByVal lOffset As Long) As Long
+    Dim nFile           As Integer
+    
+    nFile = FreeFile
+    Open sFile For Binary Access Read As nFile
+    Seek nFile, lOffset + 1
+    Get nFile, , pvPeekFile
+    Close nFile
+End Function
+
+Private Function pvGetCliRva(sFile As String) As Long
+    Dim lPeOffset       As Long
+    
+    pvGetCliRva = -1
+    If (pvPeekFile(sFile, 0) And &HFFFF&) <> Asc("Z") * &H100 + Asc("M") Then
+        GoTo QH
+    End If
+    lPeOffset = pvPeekFile(sFile, &H3C)
+    If pvPeekFile(sFile, lPeOffset) <> Asc("E") * &H100 + Asc("P") Then
+        GoTo QH
+    End If
+    pvGetCliRva = pvPeekFile(sFile, lPeOffset + 4 + 20 + 208)
+QH:
+End Function
