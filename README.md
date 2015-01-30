@@ -103,8 +103,9 @@ Appends `trustInfo` tag for UAC user-rights elevation on Vista and above.
 
 Appends `dpiAware` tag for custom DPI aware applications.
 
-    Parameters       [on_off]
+    Parameters       [on_off] [per_monitor]
       on_off         (optional) true/false or 0/1. Default is 0
+      per_monitor    (optional) win81 per-monitor DPI awareness. Default is 0
 
 #### SupportedOS
 

@@ -1,12 +1,15 @@
 Attribute VB_Name = "mdUmmm"
 '=========================================================================
-' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 14    14.11.14 20:02 Wqw $
+' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 15    30.01.15 19:46 Wqw $
 '
 '   Unattended Make My Manifest Project
 '   Copyright (c) 2009-2011 wqweto@gmail.com
 '
 ' $Log: /BuildTools/UMMM/Src/mdUmmm.bas $
 ' 
+' 15    30.01.15 19:46 Wqw
+' REF: impl win81 per-monitor dpi awareness
+'
 ' 14    14.11.14 20:02 Wqw
 ' REF: win10 support
 '
@@ -174,9 +177,9 @@ Private Function pvProcess(sFile As String) As String
                 '---   uiaccess is true/false or 0/1
                 pvDumpTrustInfo C_Lng(At(vRow, 1, "1")), C_Bool(At(vRow, 2)), cOutput
             Case "dpiaware"
-                '--- dpiaware [on_off]
+                '--- dpiaware [on_off] [per_monitor]
                 '---   on_off is true/false or 0/1
-                pvDumpDpiAware C_Bool(At(vRow, 1)), cOutput
+                pvDumpDpiAware C_Bool(At(vRow, 1)), C_Bool(At(vRow, 2)), cOutput
             Case "supportedos"
                 '--- supportedos <os_types>
                 '---   os_types are | separated OSes from { vista, win7, win8, win81 } or guids
@@ -489,15 +492,19 @@ EH:
     Resume Next
 End Function
 
-Private Function pvDumpDpiAware(ByVal bAware As Boolean, cOutput As Collection) As Boolean
+Private Function pvDumpDpiAware(ByVal bAware As Boolean, ByVal bPerMonitor As Boolean, cOutput As Collection) As Boolean
     Const FUNC_NAME     As String = "pvDumpDpiAware"
     
     On Error GoTo EH
-    cOutput.Add "    <asmv3:application>"
-    cOutput.Add "        <asmv3:windowsSettings xmlns=""http://schemas.microsoft.com/SMI/2005/WindowsSettings"">"
-    cOutput.Add Printf("            <dpiAware>%1</dpiAware>", LCase$(bAware))
-    cOutput.Add "        </asmv3:windowsSettings>"
-    cOutput.Add "    </asmv3:application>"
+    '--- note: win7 check only presense of dpiAware element not its value: if present -> app is DPI-aware
+    '---   more info at https://msdn.microsoft.com/en-ca/magazine/dn574798.aspx
+    If bAware Then
+        cOutput.Add "    <asmv3:application>"
+        cOutput.Add "        <asmv3:windowsSettings xmlns=""http://schemas.microsoft.com/SMI/2005/WindowsSettings"">"
+        cOutput.Add Printf("            <dpiAware>%1</dpiAware>", bAware & IIf(bPerMonitor, "/PM", vbNullString))
+        cOutput.Add "        </asmv3:windowsSettings>"
+        cOutput.Add "    </asmv3:application>"
+    End If
     '--- success
     pvDumpDpiAware = True
     Exit Function
