@@ -1,12 +1,15 @@
 Attribute VB_Name = "mdUmmm"
 '=========================================================================
-' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 15    30.01.15 19:46 Wqw $
+' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 16    27.04.15 22:37 Wqw $
 '
 '   Unattended Make My Manifest Project
 '   Copyright (c) 2009-2011 wqweto@gmail.com
 '
 ' $Log: /BuildTools/UMMM/Src/mdUmmm.bas $
 ' 
+' 16    27.04.15 22:37 Wqw
+' REF: additional controls progid based on tli name
+'
 ' 15    30.01.15 19:46 Wqw
 ' REF: impl win81 per-monitor dpi awareness
 '
@@ -299,12 +302,14 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As C
     Dim sLibName        As String
     Dim oClass          As CoClassInfo
     Dim sProgID         As String
-    Dim sCurVer         As String
+    Dim sVerIndProgID   As String
+    Dim sTliProgID      As String
     Dim sThreading      As String
     Dim sRegValue       As String
     Dim sMiscStatus     As String
     Dim lIdx            As Long
     Dim vSplit          As Variant
+    Dim bMultiProgID    As Boolean
     
     On Error GoTo EH
     If Not pvFileExists(pvCanonicalPath(sFile)) Then
@@ -334,18 +339,26 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As C
                 End If
                 If Not oClass Is Nothing Then
                     With oClass
-                    sProgID = vbNullString
+                    sVerIndProgID = vbNullString
                     If Not pvSearchCollection(m_cClasses, .Guid) Then
                         If LenB(sLibName) <> 0 Then
                             If LenB(pvRegGetValue("CLSID\" & .Guid & "\InprocServer32")) <> 0 Then
-                                sProgID = pvRegGetValue("CLSID\" & .Guid & "\VersionIndependentProgID", , pvRegGetValue("CLSID\" & .Guid & "\ProgID"))
+                                sVerIndProgID = pvRegGetValue("CLSID\" & .Guid & "\VersionIndependentProgID", , pvRegGetValue("CLSID\" & .Guid & "\ProgID"))
                                 '--- Recent COMDLG32.OCX has 2 coclasses w/ same ProgID
-                                If pvSearchCollection(m_cClasses, sProgID) Then
-                                    ConsolePrint "warning: ProgID %1 already used for CLSID %2 (%3)" & vbCrLf, sProgID, m_cClasses(sProgID), .Guid
+                                If pvSearchCollection(m_cClasses, sVerIndProgID) Then
+                                    ConsolePrint "warning: ProgID %1 already used for CLSID %2 (%3)" & vbCrLf, sVerIndProgID, m_cClasses(sVerIndProgID), .Guid
+                                    sVerIndProgID = vbNullString
                                     sProgID = vbNullString
-                                    sCurVer = vbNullString
                                 Else
-                                    sCurVer = pvRegGetValue(sProgID & "\CurVer", , sProgID)
+                                    sProgID = pvRegGetValue(sVerIndProgID & "\CurVer", , sVerIndProgID)
+                                End If
+                                If (.AttributeMask And TYPEFLAG_FCONTROL) <> 0 Then
+                                    sTliProgID = .Parent.Name & "." & .Name
+                                    If .MajorVersion * 1000 + .MinorVersion > 1000 Then
+                                        sTliProgID = sTliProgID & "." & .MajorVersion & "." & .MinorVersion
+                                    End If
+                                Else
+                                    sTliProgID = sProgID
                                 End If
                                 sThreading = pvRegGetValue("CLSID\" & .Guid & "\InprocServer32", "ThreadingModel")
                                 sMiscStatus = vbNullString
@@ -355,47 +368,53 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As C
                                         sMiscStatus = sMiscStatus & Printf(" %1=""%2""", Split(STR_ATTRIB_MISCSTATUS, "|")(lIdx), pvGetFlags(C_Lng(sRegValue), Split(STR_OLEMISC, "|")))
                                     End If
                                 Next
+                                bMultiProgID = LCase$(sVerIndProgID) <> LCase$(sProgID) Or (LCase$(sTliProgID) <> LCase$(sVerIndProgID) And LCase$(sTliProgID) <> LCase$(sProgID))
                                 cOutput.Add Printf("        <comClass clsid=""%1"" tlbid=""%2""%3%4%5%6>", _
                                     .Guid, .Parent.Guid, _
-                                    IIf(LenB(sCurVer) <> 0, " progid=""" & pvXmlEscape(sCurVer) & """", vbNullString), _
+                                    IIf(LenB(sProgID) <> 0, " progid=""" & pvXmlEscape(sProgID) & """", vbNullString), _
                                     IIf(LenB(sThreading) <> 0, " threadingModel=""" & sThreading & """", vbNullString), _
                                     sMiscStatus, _
-                                    IIf(sCurVer = sProgID, " /", vbNullString))
-                                If sCurVer <> sProgID Then
-                                    cOutput.Add Printf("            <progid>%1</progid>", pvXmlEscape(sProgID))
+                                    IIf(Not bMultiProgID, " /", vbNullString))
+                                If bMultiProgID Then
+                                    If LCase$(sVerIndProgID) <> LCase$(sProgID) Then
+                                        cOutput.Add Printf("            <progid>%1</progid>", pvXmlEscape(sVerIndProgID))
+                                    End If
+                                    If LCase$(sTliProgID) <> LCase$(sVerIndProgID) And LCase$(sTliProgID) <> LCase$(sProgID) Then
+                                        cOutput.Add Printf("            <progid>%1</progid>", pvXmlEscape(sTliProgID))
+                                    End If
                                     cOutput.Add "        </comClass>"
                                 End If
                             End If
                         Else
                             If .AttributeMask And (TYPEFLAG_FCANCREATE Or TYPEFLAG_FCONTROL) <> 0 Then
-                                sProgID = .Parent.Name & "." & .Name
-                                If pvSearchCollection(m_cClasses, sProgID) Then
-                                    ConsolePrint "warning: ProgID %1 already used for CLSID %2 (%3)" & vbCrLf, sProgID, m_cClasses(sProgID), .Guid
-                                    sProgID = vbNullString
+                                sVerIndProgID = .Parent.Name & "." & .Name
+                                If pvSearchCollection(m_cClasses, sVerIndProgID) Then
+                                    ConsolePrint "warning: ProgID %1 already used for CLSID %2 (%3)" & vbCrLf, sVerIndProgID, m_cClasses(sVerIndProgID), .Guid
+                                    sVerIndProgID = vbNullString
                                 End If
                                 cOutput.Add Printf("        <comClass clsid=""%1"" tlbid=""%2""%3%4%5%6>", _
                                     .Guid, .Parent.Guid, _
-                                    IIf(LenB(sProgID) <> 0, " progid=""" & pvXmlEscape(sProgID) & """", vbNullString), _
+                                    IIf(LenB(sVerIndProgID) <> 0, " progid=""" & pvXmlEscape(sVerIndProgID) & """", vbNullString), _
                                     " threadingModel=""Apartment""", _
                                     IIf((.AttributeMask And TYPEFLAG_FCONTROL) <> 0, STR_MISCSTATUS, vbNullString), _
                                     " /")
                             End If
                         End If
-                        m_cClasses.Add Array(sProgID, sFile), .Guid
-                        If LenB(sProgID) <> 0 Then
-                            m_cClasses.Add .Guid, sProgID
+                        m_cClasses.Add Array(sVerIndProgID, sFile), .Guid
+                        If LenB(sVerIndProgID) <> 0 Then
+                            m_cClasses.Add .Guid, sVerIndProgID
                         End If
                     Else
                         If LenB(sLibName) <> 0 Then
                             If LenB(pvRegGetValue("CLSID\" & .Guid & "\InprocServer32")) <> 0 Then
-                                sProgID = pvRegGetValue("CLSID\" & .Guid & "\VersionIndependentProgID", , pvRegGetValue("CLSID\" & .Guid & "\ProgID"))
+                                sVerIndProgID = pvRegGetValue("CLSID\" & .Guid & "\VersionIndependentProgID", , pvRegGetValue("CLSID\" & .Guid & "\ProgID"))
                             End If
                         Else
                             If .AttributeMask And (TYPEFLAG_FCANCREATE Or TYPEFLAG_FCONTROL) <> 0 Then
-                                sProgID = .Parent.Name & "." & .Name
+                                sVerIndProgID = .Parent.Name & "." & .Name
                             End If
                         End If
-                        ConsolePrint "warning: coclass %1 GUID is duplicate of %2 (%3) in %4" & vbCrLf, sProgID, m_cClasses(.Guid)(0), .Guid, m_cClasses(.Guid)(1)
+                        ConsolePrint "warning: coclass %1 GUID is duplicate of %2 (%3) in %4" & vbCrLf, sVerIndProgID, m_cClasses(.Guid)(0), .Guid, m_cClasses(.Guid)(1)
                     End If
                     End With
                 End If
@@ -538,7 +557,7 @@ Private Function pvDumpSupportedOs(vRow As Variant, cOutput As Collection) As Bo
             sGuid = At(vRow, lIdx)
         End Select
         If LenB(sGuid) <> 0 Then
-            cOutput.Add Printf("            <supportedOS Id=""%1""/>", sGuid)
+            cOutput.Add Printf("            <supportedOS Id=""%1"" />", sGuid)
         End If
     Next
     cOutput.Add "        </application>"
