@@ -6,7 +6,7 @@ Attribute VB_Name = "mdUmmm"
 '   Copyright (c) 2009-2011 wqweto@gmail.com
 '
 ' $Log: /BuildTools/UMMM/Src/mdUmmm.bas $
-' 
+'
 ' 16    27.04.15 22:37 Wqw
 ' REF: additional controls progid based on tli name
 '
@@ -74,6 +74,10 @@ Private Declare Function GetFileVersionInfo Lib "Version.dll" Alias "GetFileVers
 Private Declare Function GetFileVersionInfoSize Lib "Version.dll" Alias "GetFileVersionInfoSizeA" (ByVal lptstrFilename As String, lpdwHandle As Long) As Long
 Private Declare Function VerQueryValue Lib "Version.dll" Alias "VerQueryValueA" (pBlock As Any, ByVal lpSubBlock As String, lplpBuffer As Any, puLen As Long) As Long
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
+Private Declare Function CLSIDFromString Lib "ole32.dll" (ByVal lpszProgID As Long, pCLSID As Any) As Long
+Private Declare Function ProgIDFromCLSID Lib "ole32.dll" (pCLSID As Any, lpszProgID As Long) As Long
+Private Declare Function lstrlenW Lib "kernel32" (ByVal lpString As Long) As Long
+Private Declare Sub CoTaskMemFree Lib "ole32" (ByVal pv As Long)
 
 '=========================================================================
 ' Constants and member variables
@@ -303,7 +307,7 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As C
     Dim oClass          As CoClassInfo
     Dim sProgID         As String
     Dim sVerIndProgID   As String
-    Dim sTliProgID      As String
+    Dim sApiProgID      As String
     Dim sThreading      As String
     Dim sRegValue       As String
     Dim sMiscStatus     As String
@@ -343,6 +347,7 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As C
                     If Not pvSearchCollection(m_cClasses, .Guid) Then
                         If LenB(sLibName) <> 0 Then
                             If LenB(pvRegGetValue("CLSID\" & .Guid & "\InprocServer32")) <> 0 Then
+                                sApiProgID = pvGetProgID(.Guid)
                                 sVerIndProgID = pvRegGetValue("CLSID\" & .Guid & "\VersionIndependentProgID", , pvRegGetValue("CLSID\" & .Guid & "\ProgID"))
                                 '--- Recent COMDLG32.OCX has 2 coclasses w/ same ProgID
                                 If pvSearchCollection(m_cClasses, sVerIndProgID) Then
@@ -352,14 +357,6 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As C
                                 Else
                                     sProgID = pvRegGetValue(sVerIndProgID & "\CurVer", , sVerIndProgID)
                                 End If
-                                If (.AttributeMask And TYPEFLAG_FCONTROL) <> 0 Then
-                                    sTliProgID = .Parent.Name & "." & .Name
-                                    If .MajorVersion * 1000 + .MinorVersion > 1000 Then
-                                        sTliProgID = sTliProgID & "." & .MajorVersion & "." & .MinorVersion
-                                    End If
-                                Else
-                                    sTliProgID = sProgID
-                                End If
                                 sThreading = pvRegGetValue("CLSID\" & .Guid & "\InprocServer32", "ThreadingModel")
                                 sMiscStatus = vbNullString
                                 For lIdx = 0 To DVASPECT_DOCPRINT
@@ -368,7 +365,7 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As C
                                         sMiscStatus = sMiscStatus & Printf(" %1=""%2""", Split(STR_ATTRIB_MISCSTATUS, "|")(lIdx), pvGetFlags(C_Lng(sRegValue), Split(STR_OLEMISC, "|")))
                                     End If
                                 Next
-                                bMultiProgID = LCase$(sVerIndProgID) <> LCase$(sProgID) Or (LCase$(sTliProgID) <> LCase$(sVerIndProgID) And LCase$(sTliProgID) <> LCase$(sProgID))
+                                bMultiProgID = LCase$(sVerIndProgID) <> LCase$(sProgID) Or (LCase$(sApiProgID) <> LCase$(sVerIndProgID) And LCase$(sApiProgID) <> LCase$(sProgID))
                                 cOutput.Add Printf("        <comClass clsid=""%1"" tlbid=""%2""%3%4%5%6>", _
                                     .Guid, .Parent.Guid, _
                                     IIf(LenB(sProgID) <> 0, " progid=""" & pvXmlEscape(sProgID) & """", vbNullString), _
@@ -379,8 +376,8 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As C
                                     If LCase$(sVerIndProgID) <> LCase$(sProgID) Then
                                         cOutput.Add Printf("            <progid>%1</progid>", pvXmlEscape(sVerIndProgID))
                                     End If
-                                    If LCase$(sTliProgID) <> LCase$(sVerIndProgID) And LCase$(sTliProgID) <> LCase$(sProgID) Then
-                                        cOutput.Add Printf("            <progid>%1</progid>", pvXmlEscape(sTliProgID))
+                                    If LCase$(sApiProgID) <> LCase$(sVerIndProgID) And LCase$(sApiProgID) <> LCase$(sProgID) Then
+                                        cOutput.Add Printf("            <progid>%1</progid>", pvXmlEscape(sApiProgID))
                                     End If
                                     cOutput.Add "        </comClass>"
                                 End If
@@ -904,4 +901,17 @@ Private Function pvGetCliRva(sFile As String) As Long
     End If
     pvGetCliRva = pvPeekFile(sFile, lPeOffset + 4 + 20 + 208)
 QH:
+End Function
+
+Private Function pvGetProgID(sClsID As String) As String
+    Dim aCLSID(0 To 3)  As Long
+    Dim lPtr            As Long
+    
+    Call CLSIDFromString(StrPtr(sClsID), aCLSID(0))
+    Call ProgIDFromCLSID(aCLSID(0), lPtr)
+    If lPtr <> 0 Then
+        pvGetProgID = String$(lstrlenW(lPtr), 0)
+        Call CopyMemory(ByVal StrPtr(pvGetProgID), ByVal lPtr, LenB(pvGetProgID))
+        Call CoTaskMemFree(lPtr)
+    End If
 End Function
