@@ -103,13 +103,14 @@ Appends `trustInfo` tag for UAC user-rights elevation on Vista and above.
 
 Appends `dpiAware` tag for custom DPI aware applications.
 
-    Parameters       [on_off]
+    Parameters       [on_off] [per_monitor]
       on_off         (optional) true/false or 0/1. Default is 0
+      per_monitor    (optional) win81 per-monitor DPI awareness. Default is 0
 
 #### SupportedOS
 
 Appends `supportedOS` tag.
 
-    Parameters       <os_type>
-      os_type        one of { vista, win7 }. Multiple OSes can be supported by a single 
-                     manifest
+    Parameters       <os_type> [os_type #2] [os_type #3] ...
+      os_type        one of { vista, win7, win8, win81, win10 } or raw GUID as specified
+                     by Microsoft. Multiple OSes can be included in a manifest
