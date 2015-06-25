@@ -1,11 +1,14 @@
 Attribute VB_Name = "mdUmmm"
 '=========================================================================
-' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 16    27.04.15 22:37 Wqw $
+' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 19    25.06.15 19:55 Wqw $
 '
 '   Unattended Make My Manifest Project
-'   Copyright (c) 2009-2011 wqweto@gmail.com
+'   Copyright (c) 2009-2015 wqweto@gmail.com
 '
 ' $Log: /BuildTools/UMMM/Src/mdUmmm.bas $
+' 
+' 19    25.06.15 19:55 Wqw
+' REF: don't output BOM
 '
 ' 16    27.04.15 22:37 Wqw
 ' REF: additional controls progid based on tli name
@@ -127,7 +130,7 @@ Public Function Ummm(sParams As String) As Boolean
     vArgs = pvSplitArgs(sParams)
     If UBound(vArgs) >= 0 Then
         With m_oFSO.OpenTextFile(At(vArgs, 1, vArgs(0) & ".manifest"), 2, True, 0)
-            .Write STR_UTF_BOM & pvToUtf8(pvProcess(C_Str(vArgs(0))))
+            .Write pvToUtf8(pvProcess(C_Str(vArgs(0))))
         End With
         '--- success
         Ummm = True
@@ -269,6 +272,8 @@ Private Function pvDumpDependency(sLibName As String, sVersion As String, cOutpu
             On Error GoTo EH
             If Left$(sManifest, 3) = STR_UTF_BOM Then
                 sManifest = pvFromUtf8(Mid$(sManifest, 4))
+            Else
+                sManifest = pvFromUtf8(sManifest)
             End If
             '--- extract assembly identity
             lPos = InStr(1, sManifest, "<assemblyIdentity", vbTextCompare)
@@ -359,7 +364,7 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As C
                                 End If
                                 sThreading = pvRegGetValue("CLSID\" & .Guid & "\InprocServer32", "ThreadingModel")
                                 sMiscStatus = vbNullString
-                                For lIdx = 0 To DVASPECT_DOCPRINT
+                                For lIdx = 0 To Log(DVASPECT_DOCPRINT) / Log(2)
                                     sRegValue = pvRegGetValue("CLSID\" & .Guid & "\MiscStatus" & IIf(lIdx > 0, "\" & lIdx, vbNullString))
                                     If LenB(sRegValue) <> 0 Then
                                         sMiscStatus = sMiscStatus & Printf(" %1=""%2""", Split(STR_ATTRIB_MISCSTATUS, "|")(lIdx), pvGetFlags(C_Lng(sRegValue), Split(STR_OLEMISC, "|")))
