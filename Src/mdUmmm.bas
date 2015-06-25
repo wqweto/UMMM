@@ -86,6 +86,7 @@ Private Declare Sub CoTaskMemFree Lib "ole32" (ByVal pv As Long)
 Private Const STR_OLEMISC       As String = "recomposeonresize|onlyiconic|insertnotreplace|static|cantlinkinside|canlinkbyole1|islinkobject|insideout|activatewhenvisible|renderingisdeviceindependent|invisibleatruntime|alwaysrun|actslikebutton|actslikelabel|nouiactivate|alignable|simpleframe|setclientsitefirst|imemode|ignoreativatewhenvisible|wantstomenumerge|supportsmultilevelundo"
 Private Const STR_LIBFLAG       As String = "restricted|control|hidden|hasdiskimage"
 Private Const STR_ATTRIB_MISCSTATUS As String = "miscStatus|miscStatusContent|miscStatusThumbnail|miscStatusIcon|miscStatusDocprint"
+#Const USE_BOM = False
 Private Const STR_UTF_BOM       As String = "﻿"
 Private Const STR_PSOAINTERFACE As String = "{00020424-0000-0000-C000-000000000046}"
 Private Const STR_PSDISPATCH    As String = "{00020420-0000-0000-C000-000000000046}"
@@ -127,7 +128,11 @@ Public Function Ummm(sParams As String) As Boolean
     vArgs = pvSplitArgs(sParams)
     If UBound(vArgs) >= 0 Then
         With m_oFSO.OpenTextFile(At(vArgs, 1, vArgs(0) & ".manifest"), 2, True, 0)
+#If USE_BOM Then
             .Write STR_UTF_BOM & pvToUtf8(pvProcess(C_Str(vArgs(0))))
+#Else
+            .Write pvToUtf8(pvProcess(C_Str(vArgs(0))))
+#End If
         End With
         '--- success
         Ummm = True
