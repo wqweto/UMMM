@@ -1,12 +1,15 @@
 Attribute VB_Name = "mdUmmm"
 '=========================================================================
-' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 19    25.06.15 19:55 Wqw $
+' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 20    26.06.15 16:22 Wqw $
 '
 '   Unattended Make My Manifest Project
 '   Copyright (c) 2009-2015 wqweto@gmail.com
 '
 ' $Log: /BuildTools/UMMM/Src/mdUmmm.bas $
 ' 
+' 20    26.06.15 16:22 Wqw
+' REF: typelib version in registry is stored in hex
+'
 ' 19    25.06.15 19:55 Wqw
 ' REF: don't output BOM
 '
@@ -336,7 +339,7 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As C
     Else
         vSplit = Split(sClasses, "|")
         With oTLI
-            sLibName = pvRegGetValue("TypeLib\" & .Guid & "\" & .MajorVersion & "." & .MinorVersion)
+            sLibName = pvRegGetValue("TypeLib\" & .Guid & "\" & Hex(.MajorVersion) & "." & Hex(.MinorVersion))
             cOutput.Add Printf("        <typelib tlbid=""%1"" version=""%2"" flags=""%3"" helpdir=""%4"" />", .Guid, .MajorVersion & "." & .MinorVersion, _
                 pvGetFlags(.AttributeMask, Split(STR_LIBFLAG, "|")), _
                 vbNullString) ' pvPathDifference(m_sBasePath, .HelpFile)
