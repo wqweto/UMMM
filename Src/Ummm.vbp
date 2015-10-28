@@ -1,16 +1,16 @@
 Type=Exe
 Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#..\..\..\..\Windows\SysWOW64\stdole2.tlb#OLE Automation
-Reference=*\G{8B217740-717D-11CE-AB5B-D41203C10000}#1.0#0#..\..\..\..\WINDOWS\SysWow64\TLBINF32.DLL#TypeLib Information
+Reference=*\G{8B217740-717D-11CE-AB5B-D41203C10000}#1.0#0#..\..\..\..\Windows\SysWow64\TLBINF32.DLL#TypeLib Information
 Module=mdUmmm; mdUmmm.bas
 Startup="Sub Main"
 HelpFile=""
 Title="Unattended MMM"
 ExeName32="UMMM.exe"
 Path32=".."
-Command32=""
+Command32="C:\Windows\SysWOW64\MSCHRT20.OCX "
 Name="Ummm"
 HelpContextID="0"
-Description="Unattended MMM 1.0.8"
+Description="Unattended MMM 1.0.9"
 CompatibleMode="0"
 MajorVer=1
 MinorVer=0
@@ -37,14 +37,5 @@ Retained=0
 ThreadPerObject=0
 MaxNumberOfThreads=1
 
-[vbAdvance]
-IsConsole=1
-HasStubFile=0
-GenerateMap=0
-TSAware=0
-XPManifest=0
-ResBuildName=..\UMMM.dll
-ReplaceIcon=0
-SendCommandArgs=0
-SymbDbgPref=0
-RevisionVersion=0
+[VBCompiler]
+LinkSwitches=/SUBSYSTEM:CONSOLE

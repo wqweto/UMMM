@@ -1,12 +1,15 @@
 Attribute VB_Name = "mdUmmm"
 '=========================================================================
-' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 20    26.06.15 16:22 Wqw $
+' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 21    28.10.15 12:50 Wqw $
 '
 '   Unattended Make My Manifest Project
 '   Copyright (c) 2009-2015 wqweto@gmail.com
 '
 ' $Log: /BuildTools/UMMM/Src/mdUmmm.bas $
 ' 
+' 21    28.10.15 12:50 Wqw
+' REF: deduplicate api progid too
+'
 ' 20    26.06.15 16:22 Wqw
 ' REF: typelib version in registry is stored in hex
 '
@@ -352,10 +355,10 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As C
                 If Not oClass Is Nothing Then
                     With oClass
                     sVerIndProgID = vbNullString
+                    sApiProgID = vbNullString
                     If Not pvSearchCollection(m_cClasses, .Guid) Then
                         If LenB(sLibName) <> 0 Then
                             If LenB(pvRegGetValue("CLSID\" & .Guid & "\InprocServer32")) <> 0 Then
-                                sApiProgID = pvGetProgID(.Guid)
                                 sVerIndProgID = pvRegGetValue("CLSID\" & .Guid & "\VersionIndependentProgID", , pvRegGetValue("CLSID\" & .Guid & "\ProgID"))
                                 '--- Recent COMDLG32.OCX has 2 coclasses w/ same ProgID
                                 If pvSearchCollection(m_cClasses, sVerIndProgID) Then
@@ -364,6 +367,11 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As C
                                     sProgID = vbNullString
                                 Else
                                     sProgID = pvRegGetValue(sVerIndProgID & "\CurVer", , sVerIndProgID)
+                                End If
+                                sApiProgID = pvGetProgID(.Guid)
+                                If pvSearchCollection(m_cClasses, sApiProgID) Then
+                                    ConsolePrint "warning: ProgID %1 already used for CLSID %2 (%3)" & vbCrLf, sApiProgID, m_cClasses(sApiProgID), .Guid
+                                    sApiProgID = sProgID
                                 End If
                                 sThreading = pvRegGetValue("CLSID\" & .Guid & "\InprocServer32", "ThreadingModel")
                                 sMiscStatus = vbNullString
@@ -408,6 +416,9 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As C
                         m_cClasses.Add Array(sVerIndProgID, sFile), .Guid
                         If LenB(sVerIndProgID) <> 0 Then
                             m_cClasses.Add .Guid, sVerIndProgID
+                        End If
+                        If LenB(sApiProgID) <> 0 And sApiProgID <> sVerIndProgID Then
+                            m_cClasses.Add .Guid, sApiProgID
                         End If
                     Else
                         If LenB(sLibName) <> 0 Then
