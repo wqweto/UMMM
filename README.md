@@ -34,7 +34,7 @@ Here is a sample ini file for the sample solution above:
 
 ### Referencing COM components
 
-`File` command produces `file` tags in the otuput manifest. This is how all referenced COM components are listed in the ini file. The parameters of the command are `<file_name>` and optional `[interfaces]` and  `[classes_filter]`. If `<file_name>` uses relative path then base application path from `Identity` command is used. The `[interfaces]` parameter is needed only if a multi-threading application is passing object references between appartments. The `[classes_filter]` uses Like operator to filter referenced component coclass names to be included in the output manifest.
+`File` command produces `file` tags in the otuput manifest. This is how all referenced COM components are listed in the ini file. The parameters of the command are `<file_name>` and optional `[interfaces]` and  `[classes_filter]`. If `<file_name>` uses relative path then base application path from `Identity` command is used. The `[interfaces]` parameter is needed only if a multi-threading application is passing object references between apartments. The `[classes_filter]` uses Like operator to filter referenced component coclass names to be included in the output manifest.
 
 ### Referencing .Net components
 
