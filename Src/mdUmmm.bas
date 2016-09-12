@@ -3,10 +3,10 @@ Attribute VB_Name = "mdUmmm"
 ' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 21    28.10.15 12:50 Wqw $
 '
 '   Unattended Make My Manifest Project
-'   Copyright (c) 2009-2015 wqweto@gmail.com
+'   Copyright (c) 2009-2016 wqweto@gmail.com
 '
 ' $Log: /BuildTools/UMMM/Src/mdUmmm.bas $
-' 
+'
 ' 21    28.10.15 12:50 Wqw
 ' REF: deduplicate api progid too
 '
@@ -430,7 +430,9 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As C
                                 sVerIndProgID = .Parent.Name & "." & .Name
                             End If
                         End If
-                        ConsolePrint "warning: coclass %1 GUID is duplicate of %2 (%3) in %4" & vbCrLf, sVerIndProgID, m_cClasses(.Guid)(0), .Guid, m_cClasses(.Guid)(1)
+                        If LenB(sVerIndProgID) <> 0 Then
+                            ConsolePrint "warning: coclass %1 GUID is duplicate of %2 (%3) in %4" & vbCrLf, sVerIndProgID, m_cClasses(.Guid)(0), .Guid, m_cClasses(.Guid)(1)
+                        End If
                     End If
                     End With
                 End If
