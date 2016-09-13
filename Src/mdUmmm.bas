@@ -1,11 +1,14 @@
 Attribute VB_Name = "mdUmmm"
 '=========================================================================
-' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 21    28.10.15 12:50 Wqw $
+' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 23    13.09.16 16:57 Wqw $
 '
 '   Unattended Make My Manifest Project
 '   Copyright (c) 2009-2016 wqweto@gmail.com
 '
 ' $Log: /BuildTools/UMMM/Src/mdUmmm.bas $
+' 
+' 23    13.09.16 16:57 Wqw
+' REF: fix off by one error on trust info level
 '
 ' 21    28.10.15 12:50 Wqw
 ' REF: deduplicate api progid too
@@ -87,6 +90,7 @@ Private Declare Function CLSIDFromString Lib "ole32.dll" (ByVal lpszProgID As Lo
 Private Declare Function ProgIDFromCLSID Lib "ole32.dll" (pCLSID As Any, lpszProgID As Long) As Long
 Private Declare Function lstrlenW Lib "kernel32" (ByVal lpString As Long) As Long
 Private Declare Sub CoTaskMemFree Lib "ole32" (ByVal pv As Long)
+Private Declare Function GetFileAttributes Lib "kernel32" Alias "GetFileAttributesA" (ByVal lpFileName As String) As Long
 
 '=========================================================================
 ' Constants and member variables
@@ -512,12 +516,14 @@ End Function
 
 Private Function pvDumpTrustInfo(ByVal lLevel As Long, ByVal bUiAccess As Boolean, cOutput As Collection) As Boolean
     Const FUNC_NAME     As String = "pvDumpTrustInfo"
+    Dim sLevel          As String
     
     On Error GoTo EH
+    sLevel = At(Array("asInvoker", "highestAvailable", "requireAdministrator"), lLevel - 1, "asInvoker")
     cOutput.Add "    <trustInfo xmlns=""urn:schemas-microsoft-com:asm.v3"">"
     cOutput.Add "        <security>"
     cOutput.Add "            <requestedPrivileges>"
-    cOutput.Add Printf("                <requestedExecutionLevel level=""%1""%2 />", C_Str(Array("asInvoker", "highestAvailable", "requireAdministrator")(lLevel)), IIf(bUiAccess, " uiAccess=""true""", vbNullString))
+    cOutput.Add Printf("                <requestedExecutionLevel level=""%1""%2 />", sLevel, IIf(bUiAccess, " uiAccess=""true""", vbNullString))
     cOutput.Add "            </requestedPrivileges>"
     cOutput.Add "        </security>"
     cOutput.Add "    </trustInfo>"
@@ -609,55 +615,29 @@ EH:
     Resume Next
 End Function
 
-Private Function pvSplitArgs(sCmd As String) As Variant
+Private Function pvSplitArgs(sText As String) As Variant
     Const FUNC_NAME     As String = "pvSplitArgs"
+    Dim oMatches        As Object
+    Dim vRetVal         As Variant
     Dim lIdx            As Long
-    Dim lAction         As Long
-    Dim sToken          As String
-    Dim vRet            As Variant
     
     On Error GoTo EH
-    ReDim vRet(-1 To -1) As Variant
-    For lIdx = 1 To Len(sCmd)
-        Select Case lAction
-        Case 0 '--- skip whitespace
-            Select Case Mid$(sCmd, lIdx, 1)
-            Case " "
-            Case """"
-                lAction = 2
-            Case Else
-                sToken = Mid$(sCmd, lIdx, 1)
-                lAction = 1
-            End Select
-        Case 1 '--- token
-            If Mid$(sCmd, lIdx, 1) <> " " Then
-                sToken = sToken & Mid$(sCmd, lIdx, 1)
-            Else
-                lAction = 0
-            End If
-        Case 2 '--- quotes
-            If Mid$(sCmd, lIdx, 1) <> """" Then
-                sToken = sToken & Mid$(sCmd, lIdx, 1)
-            Else
-                lAction = 0
-                GoTo InsertToken
-            End If
-        End Select
-        If lAction = 0 And Len(sToken) > 0 Then
-InsertToken:
-            If UBound(vRet) >= 0 Then
-                ReDim Preserve vRet(0 To UBound(vRet) + 1) As Variant
-            Else
-                ReDim vRet(0 To 0) As Variant
-            End If
-            vRet(UBound(vRet)) = sToken
-            sToken = ""
+    With CreateObject("VBScript.RegExp")
+        .Global = True
+        .Pattern = """([^""]*(?:""""[^""]*)*)""|([^ ]+)"
+        Set oMatches = .Execute(sText)
+        If oMatches.Count > 0 Then
+            ReDim vRetVal(0 To oMatches.Count - 1) As String
+            For lIdx = 0 To oMatches.Count - 1
+                With oMatches(lIdx)
+                    vRetVal(lIdx) = Replace$(.SubMatches(0) & .SubMatches(1), """""", """")
+                End With
+            Next
+        Else
+            vRetVal = Split(vbNullString)
         End If
-    Next
-    If Len(sToken) > 0 Then
-        GoTo InsertToken
-    End If
-    pvSplitArgs = vRet
+    End With
+    pvSplitArgs = vRetVal
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -796,32 +776,33 @@ Public Function At(vData As Variant, ByVal lIdx As Long, Optional sDefault As St
     On Error GoTo 0
 End Function
 
-Private Function C_Lng(ByVal v As Variant) As String
+Public Function C_Lng(ByVal v As Variant) As String
     On Error Resume Next
     C_Lng = CLng(v)
     On Error GoTo 0
 End Function
 
-Private Function C_Str(ByVal v As Variant) As String
+Public Function C_Str(ByVal v As Variant) As String
     On Error Resume Next
     C_Str = CStr(v)
     On Error GoTo 0
 End Function
 
-Private Function C_Bool(ByVal v As Variant) As Boolean
+Public Function C_Bool(ByVal v As Variant) As Boolean
     On Error Resume Next
     C_Bool = CBool(v)
     On Error GoTo 0
 End Function
 
-Private Function Zn(sText As String, Optional IfEmptyString As Variant = Null) As Variant
+Public Function Zn(sText As String, Optional IfEmptyString As Variant = Null) As Variant
     Zn = IIf(LenB(sText) = 0, IfEmptyString, sText)
 End Function
 
 Private Function pvFileExists(sFile As String) As Boolean
-    On Error Resume Next
-    pvFileExists = (GetAttr(sFile) <> -1)
-    On Error GoTo 0
+    If GetFileAttributes(sFile) = -1 Then ' INVALID_FILE_ATTRIBUTES
+    Else
+        pvFileExists = True
+    End If
 End Function
 
 Private Function pvGetTempFileName() As String
