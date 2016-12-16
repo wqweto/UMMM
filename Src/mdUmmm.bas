@@ -1,12 +1,15 @@
 Attribute VB_Name = "mdUmmm"
 '=========================================================================
-' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 23    13.09.16 16:57 Wqw $
+' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 24    16.12.16 12:07 Wqw $
 '
 '   Unattended Make My Manifest Project
 '   Copyright (c) 2009-2016 wqweto@gmail.com
 '
 ' $Log: /BuildTools/UMMM/Src/mdUmmm.bas $
 ' 
+' 24    16.12.16 12:07 Wqw
+' REF: impl dll command for std dll redirection
+'
 ' 23    13.09.16 16:57 Wqw
 ' REF: fix off by one error on trust info level
 '
@@ -191,6 +194,9 @@ Private Function pvProcess(sFile As String) As String
             Case "interface"
                 '--- interface <file_name> <interfaces>
                 pvDumpInterfaces At(vRow, 1), At(vRow, 2), cOutput
+            Case "dll"
+                '--- dll <file_name> [dll_name]
+                pvDumpDll At(vRow, 1), At(vRow, 2), cOutput
             Case "trustinfo"
                 '--- trustinfo [level] [uiaccess]
                 '---   level in { 1, 2, 3 }
@@ -508,6 +514,22 @@ Private Function pvDumpInterfaces(sFile As String, sInterfaces As String, cOutpu
     '--- success
     pvDumpInterfaces = True
 QH:
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
+Private Function pvDumpDll(sPath As String, sName As String, cOutput As Collection) As Boolean
+    Const FUNC_NAME     As String = "pvDumpDll"
+        
+    On Error GoTo EH
+    If LenB(sName) = 0 Then
+        sName = Mid$(sPath, InStrRev(sPath, "\") + 1)
+    End If
+    cOutput.Add Printf("    <file name=""%1"" loadFrom=""%2"" />", sName, sPath)
+    '--- success
+    pvDumpDll = True
     Exit Function
 EH:
     PrintError FUNC_NAME
