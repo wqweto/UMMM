@@ -899,6 +899,9 @@ Private Function pvGetStringFileInfo(sFile As String, sKey As String) As String
         pvGetStringFileInfo = String$(lSize - 1, 0)
         Call CopyMemory(ByVal pvGetStringFileInfo, ByVal lPtr, lSize)
     End If
+    
+    ' Strip out null termination (ASCII zero)
+    pvGetStringFileInfo = Replace(pvGetStringFileInfo, Chr$(0), "")
 QH:
 End Function
 
