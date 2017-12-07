@@ -12,11 +12,11 @@ UMMM is a tool that can be using in automated builds to create manifests for reg
 Here is a sample multi-project solution with references between VB6 projects and references to external components.
 
     [Main App (exe)] ---> [Component A (dll)] ---> [TreeView Component (ocx)]
-	       |                     |
-		   |                     v
+           |                     |
+           |                     v
            +------------> [Component B (dll)] ---> [Component C (dll)]
-		   |
-		   +------------> [CLR Component (.Net dll)]
+           |
+           +------------> [CLR Component (.Net dll)]
 
 UMMM can be used to produce manifest for Main App (exe) that references Component A, Component B, Component C, CLR Component and TreeView Component all at once. No manifest for any other project/component is needed to get registration-free COM working.
 
