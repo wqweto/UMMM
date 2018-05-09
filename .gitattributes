@@ -4,3 +4,4 @@
 *.dll -text
 *.cmp -text
 *.cobj -text
+*.exe -text
