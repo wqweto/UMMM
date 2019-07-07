@@ -1,63 +1,8 @@
 Attribute VB_Name = "mdUmmm"
 '=========================================================================
-' $Header: /BuildTools/UMMM/Src/mdUmmm.bas 24    16.12.16 12:07 Wqw $
 '
 '   Unattended Make My Manifest Project
-'   Copyright (c) 2009-2016 wqweto@gmail.com
-'
-' $Log: /BuildTools/UMMM/Src/mdUmmm.bas $
-' 
-' 24    16.12.16 12:07 Wqw
-' REF: impl dll command for std dll redirection
-'
-' 23    13.09.16 16:57 Wqw
-' REF: fix off by one error on trust info level
-'
-' 21    28.10.15 12:50 Wqw
-' REF: deduplicate api progid too
-'
-' 20    26.06.15 16:22 Wqw
-' REF: typelib version in registry is stored in hex
-'
-' 19    25.06.15 19:55 Wqw
-' REF: don't output BOM
-'
-' 16    27.04.15 22:37 Wqw
-' REF: additional controls progid based on tli name
-'
-' 15    30.01.15 19:46 Wqw
-' REF: impl win81 per-monitor dpi awareness
-'
-' 14    14.11.14 20:02 Wqw
-' REF: win10 support
-'
-' 13    14.11.14 19:48 Wqw
-' REF: impl var arg for supported oses
-'
-' 12    9.12.11 18:00 Wqw
-' REF: dump only dispatch kind interfaces
-'
-' 11    29.11.11 16:21 Wqw
-' REF: fixed dispatch vs dual interface proxy/stub clsid
-'
-' 10    22.02.11 15:49 Wqw
-' REF: LookupArray uses like operator
-'
-' 8     17.02.11 11:14 Wqw
-' REF: retval of bool functions
-'
-' 7     16.02.10 17:40 Wqw
-' REF: in dump classes if no typelib found did not close file tag
-'
-' 6     16.02.10 15:52 Wqw
-' REF: Main calls Ummm
-'
-' 5     16.02.10 13:56 Wqw
-' REF: console application, error handling, impl .NET COM assemblies
-' dependency
-'
-' 1     29.9.09 18:35 Wqw
-' Initial implementation
+'   Copyright (c) 2009-2019 wqweto@gmail.com
 '
 '=========================================================================
 Option Explicit
