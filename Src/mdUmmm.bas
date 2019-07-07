@@ -206,6 +206,10 @@ Private Function pvProcess(sFile As String) As String
                 '--- dpiaware [on_off] [per_monitor]
                 '---   on_off is true/false or 0/1
                 pvDumpDpiAware C_Bool(At(vRow, 1)), C_Bool(At(vRow, 2)), cOutput
+            Case "gdiscaling"
+                '--- gdiscaling [on_off]
+                '---   on_off is true/false or 0/1
+                pvDumpGdiScaling C_Bool(At(vRow, 1)), cOutput
             Case "supportedos"
                 '--- supportedos <os_types>
                 '---   os_types are | separated OSes from { vista, win7, win8, win81 } or guids
@@ -572,6 +576,25 @@ Private Function pvDumpDpiAware(ByVal bAware As Boolean, ByVal bPerMonitor As Bo
     End If
     '--- success
     pvDumpDpiAware = True
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
+Private Function pvDumpGdiScaling(ByVal bEnable As Boolean, cOutput As Collection) As Boolean
+    Const FUNC_NAME     As String = "pvDumpGdiScaling"
+    
+    On Error GoTo EH
+    If bEnable Then
+        cOutput.Add "    <asmv3:application>"
+        cOutput.Add "        <asmv3:windowsSettings xmlns=""http://schemas.microsoft.com/SMI/2017/WindowsSettings"">"
+        cOutput.Add "            <gdiScaling>true</dpiAware>"
+        cOutput.Add "        </asmv3:windowsSettings>"
+        cOutput.Add "    </asmv3:application>"
+    End If
+    '--- success
+    pvDumpGdiScaling = True
     Exit Function
 EH:
     PrintError FUNC_NAME
