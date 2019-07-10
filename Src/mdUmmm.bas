@@ -154,10 +154,10 @@ Private Function pvProcess(sFile As String) As String
             Case "gdiscaling"
                 '--- gdiscaling [on_off]
                 '---   on_off is true/false or 0/1
+                pvDumpGdiScaling C_Bool(At(vRow, 1)), cOutput
             Case "dpiawareness"
                 '--- dpiawareness elements
                 pvDumpDpiAwareness At(vRow, 1), cOutput
-                pvDumpGdiScaling C_Bool(At(vRow, 1)), cOutput
             Case "supportedos"
                 '--- supportedos <os_types>
                 '---   os_types are | separated OSes from { vista, win7, win8, win81 } or guids
@@ -537,7 +537,7 @@ Private Function pvDumpGdiScaling(ByVal bEnable As Boolean, cOutput As Collectio
     If bEnable Then
         cOutput.Add "    <asmv3:application>"
         cOutput.Add "        <asmv3:windowsSettings xmlns=""http://schemas.microsoft.com/SMI/2017/WindowsSettings"">"
-        cOutput.Add "            <gdiScaling>true</dpiAware>"
+        cOutput.Add "            <gdiScaling>true</gdiScaling>"
         cOutput.Add "        </asmv3:windowsSettings>"
         cOutput.Add "    </asmv3:application>"
     End If
