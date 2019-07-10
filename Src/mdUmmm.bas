@@ -537,7 +537,7 @@ Private Function pvDumpGdiScaling(ByVal bEnable As Boolean, cOutput As Collectio
     If bEnable Then
         cOutput.Add "    <asmv3:application>"
         cOutput.Add "        <asmv3:windowsSettings xmlns=""http://schemas.microsoft.com/SMI/2017/WindowsSettings"">"
-        cOutput.Add "            <gdiScaling>true</dpiAware>"
+        cOutput.Add "            <gdiScaling>true</gdiScaling>"
         cOutput.Add "        </asmv3:windowsSettings>"
         cOutput.Add "    </asmv3:application>"
     End If
