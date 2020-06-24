@@ -75,11 +75,12 @@ Appends `dependency` tag for referencing dependent assemblies like Common Contro
 
 Appends `file` tag and collects information about coclasses and interfaces exposed by the referenced COM component typelib.
 
-    Parameters       <file_name> [interfaces] [classes_filter]
+    Parameters       <file_name> [interfaces] [classes_filter] [target_name]
       file_name      file containing typelib. Can be relative to base path
       interfaces     (optional) pipe (|) separated interfaces with or w/o leading 
                      underscore
       classes_filter (optional) pipe (|) separated filter for coclasses in file
+      target_name    (optional) surrogate file location in output manifest
 
 #### Interface
 

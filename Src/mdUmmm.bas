@@ -131,10 +131,10 @@ Private Function pvProcess(sFile As String) As String
                 '---   lib_name in { comctl, vc90crt, vc90mfc }
                 pvDumpDependency At(vRow, 1), At(vRow, 2), cOutput
             Case "file"
-                '--- file <file_name> [interfaces] [classes]
+                '--- file <file_name> [interfaces] [classes] [target_name]
                 '---   file_name can be relative to base path from exe_file
                 '---   interfaces are | separated, with or w/o leading underscore
-                pvDumpClasses At(vRow, 1), At(vRow, 3), cOutput
+                pvDumpClasses At(vRow, 1), At(vRow, 3), At(vRow, 4), cOutput
                 pvDumpInterfaces At(vRow, 1), At(vRow, 2), cOutput
             Case "interface"
                 '--- interface <file_name> <interfaces>
@@ -167,7 +167,7 @@ Private Function pvProcess(sFile As String) As String
     Case 0
         '--- native (COM) dll
         pvDumpIdentity pvCanonicalPath(sFile), vbNullString, vbNullString, cOutput
-        pvDumpClasses pvCanonicalPath(sFile), vbNullString, cOutput
+        pvDumpClasses pvCanonicalPath(sFile), vbNullString, vbNullString, cOutput
         pvDumpInterfaces pvCanonicalPath(sFile), "*", cOutput
     Case Else
         '--- .net assembly
@@ -272,7 +272,7 @@ EH:
     Resume Next
 End Function
 
-Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As Collection) As Boolean
+Private Function pvDumpClasses(sFile As String, sClasses As String, sTargetName As String, cOutput As Collection) As Boolean
     Const FUNC_NAME     As String = "pvDumpClasses"
     Const STR_MISCSTATUS As String = " miscStatusContent=""recomposeonresize,cantlinkinside,insideout,activatewhenvisible,setclientsitefirst"""
     Dim oTLI            As TypeLibInfo
@@ -293,7 +293,7 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, cOutput As C
         ConsolePrint "error: file %1 not found" & vbCrLf, sFile
         GoTo QH
     End If
-    cOutput.Add Printf("    <file name=""%1"">", pvPathDifference(m_sBasePath, sFile))
+    cOutput.Add Printf("    <file name=""%1"">", Zn(sTargetName, pvPathDifference(m_sBasePath, sFile)))
     '--- note: TypeLibInfoFromFile is corrupting registry by partially registering
     '---   typelib if relative filename is used!!!
     On Error Resume Next
