@@ -121,6 +121,12 @@ Appends `dpiAwareness` tag for custom DPI aware applications.
 
     Parameters       <elements> comma separated
 
+#### LongPathAware
+
+Appends `longPathAware` tag for enabling long file paths (32,767 characters). Only supported on Windows 10 1607 or newer with HKLM\SYSTEM\CurrentControlSet\Control\FileSystem LongPathsEnabled = 1. See https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file?redirectedfrom=MSDN for more information.
+
+    Parameters       [on_off]
+      on_off         (optional) true/false or 0/1. Default is 0
 
 #### SupportedOS
 
