@@ -165,7 +165,7 @@ Private Function pvProcess(sFile As String) As String
             Case "longpathaware"
                 '--- longpathaware [on_off]
                 '---   on_off is true/false or 0/1
-                pvDumpLongPathAware C_Bool(At(vRow, 1)), C_Bool(At(vRow, 2)), cOutput
+                pvDumpLongPathAware C_Bool(At(vRow, 1)), cOutput
             End Select
         Next
     Case 0
@@ -534,7 +534,7 @@ EH:
     Resume Next
 End Function
 
-Private Function pvDumpLongPathAware(ByVal bAware As Boolean, ByVal bPerMonitor As Boolean, cOutput As Collection) As Boolean
+Private Function pvDumpLongPathAware(ByVal bAware As Boolean, cOutput As Collection) As Boolean
     Const FUNC_NAME     As String = "pvDumpLongPathAware"
     '--- note: longPathAware details from MS here:
     '---   https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file?redirectedfrom=MSDN
