@@ -162,6 +162,10 @@ Private Function pvProcess(sFile As String) As String
                 '--- supportedos <os_types>
                 '---   os_types are | separated OSes from { vista, win7, win8, win81 } or guids
                 pvDumpSupportedOs vRow, cOutput
+            Case "longpathaware"
+                '--- longpathaware [on_off]
+                '---   on_off is true/false or 0/1
+                pvDumpLongPathAware C_Bool(At(vRow, 1)), C_Bool(At(vRow, 2)), cOutput
             End Select
         Next
     Case 0
@@ -524,6 +528,27 @@ Private Function pvDumpDpiAware(ByVal bAware As Boolean, ByVal bPerMonitor As Bo
     End If
     '--- success
     pvDumpDpiAware = True
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
+Private Function pvDumpLongPathAware(ByVal bAware As Boolean, ByVal bPerMonitor As Boolean, cOutput As Collection) As Boolean
+    Const FUNC_NAME     As String = "pvDumpLongPathAware"
+    '--- note: longPathAware details from MS here:
+    '---   https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file?redirectedfrom=MSDN
+    '---   Requires Windows 10, version 1607 or newer and HKLM\SYSTEM\CurrentControlSet\Control\FileSystem LongPathsEnabled = 1
+    On Error GoTo EH
+    If bAware Then
+        cOutput.Add "    <application xmlns=""urn:schemas-microsoft-com:asm.v3"">"
+        cOutput.Add "        <windowsSettings xmlns:ws2=""http://schemas.microsoft.com/SMI/2016/WindowsSettings"">"
+        cOutput.Add "            <ws2:longPathAware>true</ws2:longPathAware>"
+        cOutput.Add "        </windowsSettings>"
+        cOutput.Add "    </application>"
+    End If
+    '--- success
+    pvDumpLongPathAware = True
     Exit Function
 EH:
     PrintError FUNC_NAME
