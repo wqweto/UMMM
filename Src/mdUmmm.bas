@@ -2,7 +2,7 @@ Attribute VB_Name = "mdUmmm"
 '=========================================================================
 '
 '   Unattended Make My Manifest Project
-'   Copyright (c) 2009-2019 wqweto@gmail.com
+'   Copyright (c) 2009-2020 wqweto@gmail.com
 '
 '=========================================================================
 Option Explicit
