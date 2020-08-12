@@ -48,7 +48,7 @@ UMMM uses `mt.exe` to generate (temporary) manifest from the assembly file and t
 
 ### List of commands
 
-Command names are case-insensitive.
+Command names are case-insensitive. Optional parameters can be passed `""` when unneeded, or omitted entirely at the end of a line.
 
 #### Identity
 
