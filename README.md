@@ -97,8 +97,8 @@ Appends `trustInfo` tag for UAC user-rights elevation on Vista and above.
     Parameters       [level] [uiaccess]
       level          (optional) one of { 1, 2, 3 } corresponding to { asInvoker, 
                      highestAvailable, requireAdministrator }. Default is 1
-      uiaccess       (optional) true/false or 0/1. Allows application to gain access to 
-                     the protected system UI. Default is 0
+      uiaccess       (optional) true/false or 1/0. Allows application to gain access to 
+                     the protected system UI. Default is false (0).
 
 #### DpiAware
 
