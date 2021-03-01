@@ -227,11 +227,13 @@ Private Function pvDumpDependency(sLibName As String, sVersion As String, cOutpu
     On Error GoTo EH
     Select Case LCase$(sLibName)
     Case "comctl"
-        sOutput = Printf("<assemblyIdentity language=""*"" name=""Microsoft.Windows.Common-Controls"" processorArchitecture=""X86"" publicKeyToken=""6595b64144ccf1df"" type=""win32"" version=""%1"" />", Zn(sVersion, "6.0.0.0"))
+        sOutput = Printf("<assemblyIdentity type=""win32"" name=""Microsoft.Windows.Common-Controls"" version=""%1"" processorArchitecture=""X86"" publicKeyToken=""6595b64144ccf1df"" language=""*"" />", Zn(sVersion, "6.0.0.0"))
+    Case "gdi+"
+        sOutput = Printf("<assemblyIdentity type=""win32"" name=""Microsoft.Windows.GdiPlus"" version=""%1"" processorArchitecture=""X86"" publicKeyToken=""6595b64144ccf1df"" language=""*"" />", Zn(sVersion, "1.0.0.0"))
     Case "vc90crt"
-        sOutput = Printf("<assemblyIdentity type=""win32"" name=""Microsoft.VC90.CRT"" version=""%1"" processorArchitecture=""X86"" publicKeyToken=""1fc8b3b9a1e18e3b"" />", Zn(sVersion, "9.0.21022.8")) ' 9.0.30729.1
+        sOutput = Printf("<assemblyIdentity type=""win32"" name=""Microsoft.VC90.CRT"" version=""%1"" processorArchitecture=""X86"" publicKeyToken=""1fc8b3b9a1e18e3b"" language=""*"" />", Zn(sVersion, "9.0.21022.8"))
     Case "vc90mfc"
-        sOutput = Printf("<assemblyIdentity type=""win32"" name=""Microsoft.VC90.MFC"" version=""%1"" processorArchitecture=""X86"" publicKeyToken=""1fc8b3b9a1e18e3b"" />", Zn(sVersion, "9.0.21022.8"))
+        sOutput = Printf("<assemblyIdentity type=""win32"" name=""Microsoft.VC90.MFC"" version=""%1"" processorArchitecture=""X86"" publicKeyToken=""1fc8b3b9a1e18e3b"" language=""*"" />", Zn(sVersion, "9.0.21022.8"))
     Case Else
         If pvFileExists(sLibName) Then
             '--- dump assembly manifest
