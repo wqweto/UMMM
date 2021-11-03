@@ -594,6 +594,9 @@ End Function
 Private Function pvDumpSupportedOs(vRow As Variant, cOutput As Collection) As Boolean
     Const FUNC_NAME     As String = "pvDumpSupportedOs"
     Dim lIdx            As Long
+    Dim lIdxGuid        As Long
+    Dim sCharGuid       As String
+    Dim lLenGuid        As Long
     Dim sGuid           As String
     
     On Error GoTo EH
@@ -613,10 +616,30 @@ Private Function pvDumpSupportedOs(vRow As Variant, cOutput As Collection) As Bo
             sGuid = "{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"
         Case Else
             '--- this has to be properly escaped attribute value
-            sGuid = At(vRow, lIdx)
+            sGuid = LCase$(At(vRow, lIdx))
         End Select
-        If LenB(sGuid) <> 0 Then
+        
+        lLenGuid = Len(sGuid)
+        If lLenGuid = 38 Then
+            If Left$(sGuid, 1) <> "{" Then
+                Err.Raise vbObjectError, , "GUID must start with ""{"""
+            ElseIf Right$(sGuid, 1) <> "}" Then
+                Err.Raise vbObjectError, , "GUID must end with ""}"""
+            Else
+                For lIdxGuid = 2 To Len(sGuid) - 1
+                    sCharGuid = Mid$(sGuid, lIdxGuid, 1)
+                    Select Case sCharGuid
+                    Case "a" To "f", "0" To "9", "-"
+                        ' OK
+                    Case Else
+                        Err.Raise vbObjectError, , "Invalid character in GUID: " & sCharGuid
+                    End Select
+                Next
+            End If
+            
             cOutput.Add Printf("            <supportedOS Id=""%1"" />", sGuid)
+        Else
+            Err.Raise vbObjectError, , "Invalid GUID length for """ & sGuid & """. Expected 38 characters, got " & lLenGuid
         End If
     Next
     cOutput.Add "        </application>"
