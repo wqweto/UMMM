@@ -2,7 +2,7 @@ Attribute VB_Name = "mdUmmm"
 '=========================================================================
 '
 '   Unattended Make My Manifest Project
-'   Copyright (c) 2009-2019 wqweto@gmail.com
+'   Copyright (c) 2009-2020 wqweto@gmail.com
 '
 '=========================================================================
 Option Explicit
@@ -165,7 +165,7 @@ Private Function pvProcess(sFile As String) As String
             Case "longpathaware"
                 '--- longpathaware [on_off]
                 '---   on_off is true/false or 0/1
-                pvDumpLongPathAware C_Bool(At(vRow, 1)), C_Bool(At(vRow, 2)), cOutput
+                pvDumpLongPathAware C_Bool(At(vRow, 1)), cOutput
             End Select
         Next
     Case 0
@@ -227,11 +227,13 @@ Private Function pvDumpDependency(sLibName As String, sVersion As String, cOutpu
     On Error GoTo EH
     Select Case LCase$(sLibName)
     Case "comctl"
-        sOutput = Printf("<assemblyIdentity language=""*"" name=""Microsoft.Windows.Common-Controls"" processorArchitecture=""X86"" publicKeyToken=""6595b64144ccf1df"" type=""win32"" version=""%1"" />", Zn(sVersion, "6.0.0.0"))
+        sOutput = Printf("<assemblyIdentity type=""win32"" name=""Microsoft.Windows.Common-Controls"" version=""%1"" processorArchitecture=""X86"" publicKeyToken=""6595b64144ccf1df"" language=""*"" />", Zn(sVersion, "6.0.0.0"))
+    Case "gdi+"
+        sOutput = Printf("<assemblyIdentity type=""win32"" name=""Microsoft.Windows.GdiPlus"" version=""%1"" processorArchitecture=""X86"" publicKeyToken=""6595b64144ccf1df"" language=""*"" />", Zn(sVersion, "1.0.0.0"))
     Case "vc90crt"
-        sOutput = Printf("<assemblyIdentity type=""win32"" name=""Microsoft.VC90.CRT"" version=""%1"" processorArchitecture=""X86"" publicKeyToken=""1fc8b3b9a1e18e3b"" />", Zn(sVersion, "9.0.21022.8")) ' 9.0.30729.1
+        sOutput = Printf("<assemblyIdentity type=""win32"" name=""Microsoft.VC90.CRT"" version=""%1"" processorArchitecture=""X86"" publicKeyToken=""1fc8b3b9a1e18e3b"" language=""*"" />", Zn(sVersion, "9.0.21022.8"))
     Case "vc90mfc"
-        sOutput = Printf("<assemblyIdentity type=""win32"" name=""Microsoft.VC90.MFC"" version=""%1"" processorArchitecture=""X86"" publicKeyToken=""1fc8b3b9a1e18e3b"" />", Zn(sVersion, "9.0.21022.8"))
+        sOutput = Printf("<assemblyIdentity type=""win32"" name=""Microsoft.VC90.MFC"" version=""%1"" processorArchitecture=""X86"" publicKeyToken=""1fc8b3b9a1e18e3b"" language=""*"" />", Zn(sVersion, "9.0.21022.8"))
     Case Else
         If pvFileExists(sLibName) Then
             '--- dump assembly manifest
@@ -534,7 +536,7 @@ EH:
     Resume Next
 End Function
 
-Private Function pvDumpLongPathAware(ByVal bAware As Boolean, ByVal bPerMonitor As Boolean, cOutput As Collection) As Boolean
+Private Function pvDumpLongPathAware(ByVal bAware As Boolean, cOutput As Collection) As Boolean
     Const FUNC_NAME     As String = "pvDumpLongPathAware"
     '--- note: longPathAware details from MS here:
     '---   https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file?redirectedfrom=MSDN
