@@ -30,7 +30,7 @@ Here is a sample ini file for the sample solution above:
 	Dependency ClrComponent.dll /u
 	Dependency ComCtl
 	
-`Identity` command is needed to produce `assemblyIdentity` tag in the output manifest. The  parameters of the command are `<exe_file>` and optional `[name]` and `[description]`. The path of the `<exe_file>` paramter sets the base path of the application, so that relative paths in next commands are based on this application path.
+`Identity` command is needed to produce `assemblyIdentity` tag in the output manifest. The  parameters of the command are `<exe_file>` and optional `[name]` and `[description]`. The path of the `<exe_file>` parameter sets the base path of the application, so that relative paths in next commands are based on this application path.
 
 ### Referencing COM components
 

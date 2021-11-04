@@ -2,7 +2,7 @@ Attribute VB_Name = "mdUmmm"
 '=========================================================================
 '
 '   Unattended Make My Manifest Project
-'   Copyright (c) 2009-2020 wqweto@gmail.com
+'   Copyright (c) 2009-2021 wqweto@gmail.com
 '
 '=========================================================================
 Option Explicit
@@ -614,8 +614,11 @@ Private Function pvDumpSupportedOs(vRow As Variant, cOutput As Collection) As Bo
         Case "win10"
             sGuid = "{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"
         Case Else
-            '--- this has to be properly escaped attribute value
-            sGuid = At(vRow, lIdx)
+            If pvIsGuid(At(vRow, lIdx)) Then
+                sGuid = At(vRow, lIdx)
+            Else
+                sGuid = vbNullString
+            End If
         End Select
         If LenB(sGuid) <> 0 Then
             cOutput.Add Printf("            <supportedOS Id=""%1"" />", sGuid)
@@ -957,3 +960,9 @@ Private Function pvGetProgID(sClsID As String) As String
         Call CoTaskMemFree(lPtr)
     End If
 End Function
+
+Private Function pvIsGuid(ByVal sValue As String) As Boolean
+    Const EMPTY_GUID As String = "{00000000-0000-0000-0000-000000000000}"
+    pvIsGuid = sValue Like Replace(EMPTY_GUID, "0", "[0-9a-fA-F]")
+End Function
+
