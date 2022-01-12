@@ -135,3 +135,10 @@ Appends `supportedOS` tag.
     Parameters       <os_type> [os_type #2] [os_type #3] ...
       os_type        one of { vista, win7, win8, win81, win10 } or raw GUID as specified
                      by Microsoft. Multiple OSes can be included in a manifest
+
+#### ActiveCodePage
+
+Appends `activeCodePage` tag for non-Unicode codepages. See https://docs.microsoft.com/en-us/windows/win32/sbscs/application-manifests#activeCodePage for more information.
+
+    Parameters       <locale>
+      locale         UTF-8, Legacy or locale name (e.g. en-US)

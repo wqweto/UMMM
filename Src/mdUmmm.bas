@@ -2,7 +2,7 @@ Attribute VB_Name = "mdUmmm"
 '=========================================================================
 '
 '   Unattended Make My Manifest Project
-'   Copyright (c) 2009-2021 wqweto@gmail.com
+'   Copyright (c) 2009-2022 wqweto@gmail.com
 '
 '=========================================================================
 Option Explicit
@@ -39,6 +39,9 @@ Private Declare Function ProgIDFromCLSID Lib "ole32.dll" (pCLSID As Any, lpszPro
 Private Declare Function lstrlenW Lib "kernel32" (ByVal lpString As Long) As Long
 Private Declare Sub CoTaskMemFree Lib "ole32" (ByVal pv As Long)
 Private Declare Function GetFileAttributes Lib "kernel32" Alias "GetFileAttributesA" (ByVal lpFileName As String) As Long
+Private Declare Function CommandLineToArgvW Lib "shell32" (ByVal lpCmdLine As Long, pNumArgs As Long) As Long
+Private Declare Function LocalFree Lib "kernel32" (ByVal hMem As Long) As Long
+Private Declare Function ApiSysAllocString Lib "oleaut32" Alias "SysAllocString" (ByVal Ptr As Long) As Long
 
 '=========================================================================
 ' Constants and member variables
@@ -156,7 +159,7 @@ Private Function pvProcess(sFile As String) As String
                 '---   on_off is true/false or 0/1
                 pvDumpGdiScaling C_Bool(At(vRow, 1)), cOutput
             Case "dpiawareness"
-                '--- dpiawareness elements
+                '--- dpiawareness <elements>
                 pvDumpDpiAwareness At(vRow, 1), cOutput
             Case "supportedos"
                 '--- supportedos <os_types>
@@ -166,6 +169,10 @@ Private Function pvProcess(sFile As String) As String
                 '--- longpathaware [on_off]
                 '---   on_off is true/false or 0/1
                 pvDumpLongPathAware C_Bool(At(vRow, 1)), cOutput
+            Case "activecodepage"
+                '--- activecodepage <locale>
+                '---   locale can be UTF-8, Legacy or locale name (e.g. en-US)
+                pvDumpActiveCodePage At(vRow, 1), cOutput
             End Select
         Next
     Case 0
@@ -536,27 +543,6 @@ EH:
     Resume Next
 End Function
 
-Private Function pvDumpLongPathAware(ByVal bAware As Boolean, cOutput As Collection) As Boolean
-    Const FUNC_NAME     As String = "pvDumpLongPathAware"
-    '--- note: longPathAware details from MS here:
-    '---   https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file?redirectedfrom=MSDN
-    '---   Requires Windows 10, version 1607 or newer and HKLM\SYSTEM\CurrentControlSet\Control\FileSystem LongPathsEnabled = 1
-    On Error GoTo EH
-    If bAware Then
-        cOutput.Add "    <application xmlns=""urn:schemas-microsoft-com:asm.v3"">"
-        cOutput.Add "        <windowsSettings xmlns:ws2=""http://schemas.microsoft.com/SMI/2016/WindowsSettings"">"
-        cOutput.Add "            <ws2:longPathAware>true</ws2:longPathAware>"
-        cOutput.Add "        </windowsSettings>"
-        cOutput.Add "    </application>"
-    End If
-    '--- success
-    pvDumpLongPathAware = True
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Function
-
 Private Function pvDumpGdiScaling(ByVal bEnable As Boolean, cOutput As Collection) As Boolean
     Const FUNC_NAME     As String = "pvDumpGdiScaling"
     
@@ -576,17 +562,38 @@ EH:
     Resume Next
 End Function
 
-Private Function pvDumpDpiAwareness(ByVal sValues As String, cOutput As Collection) As Boolean
+Private Function pvDumpDpiAwareness(sValues As String, cOutput As Collection) As Boolean
     Const FUNC_NAME     As String = "pvDumpDpiAwareness"
     
     On Error GoTo EH
     cOutput.Add "    <asmv3:application>"
     cOutput.Add "        <asmv3:windowsSettings xmlns=""http://schemas.microsoft.com/SMI/2016/WindowsSettings"">"
-    cOutput.Add Printf("            <dpiAwareness>%1</dpiAwareness>", sValues)
+    cOutput.Add Printf("            <dpiAwareness>%1</dpiAwareness>", pvXmlEscape(sValues))
     cOutput.Add "        </asmv3:windowsSettings>"
     cOutput.Add "    </asmv3:application>"
     '--- success
     pvDumpDpiAwareness = True
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
+Private Function pvDumpLongPathAware(ByVal bAware As Boolean, cOutput As Collection) As Boolean
+    Const FUNC_NAME     As String = "pvDumpLongPathAware"
+    '--- note: longPathAware details from MS here:
+    '---   https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file?redirectedfrom=MSDN
+    '---   Requires Windows 10, version 1607 or newer and HKLM\SYSTEM\CurrentControlSet\Control\FileSystem LongPathsEnabled = 1
+    On Error GoTo EH
+    If bAware Then
+        cOutput.Add "    <application xmlns=""urn:schemas-microsoft-com:asm.v3"">"
+        cOutput.Add "        <windowsSettings xmlns:ws2=""http://schemas.microsoft.com/SMI/2016/WindowsSettings"">"
+        cOutput.Add "            <ws2:longPathAware>true</ws2:longPathAware>"
+        cOutput.Add "        </windowsSettings>"
+        cOutput.Add "    </application>"
+    End If
+    '--- success
+    pvDumpLongPathAware = True
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -634,6 +641,24 @@ EH:
     Resume Next
 End Function
 
+Private Function pvDumpActiveCodePage(sLocale As String, cOutput As Collection) As Boolean
+    Const FUNC_NAME     As String = "pvDumpActiveCodePage"
+    
+    '--- https://docs.microsoft.com/en-us/windows/win32/sbscs/application-manifests#activeCodePage
+    On Error GoTo EH
+    cOutput.Add "    <asmv3:application>"
+    cOutput.Add "        <asmv3:windowsSettings xmlns=""http://schemas.microsoft.com/SMI/2019/WindowsSettings"">"
+    cOutput.Add Printf("            <activeCodePage>%1</activeCodePage>", pvXmlEscape(sLocale))
+    cOutput.Add "        </asmv3:windowsSettings>"
+    cOutput.Add "    </asmv3:application>"
+    '--- success
+    pvDumpActiveCodePage = True
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
 Private Function pvGetFlags(ByVal lMask As Long, vFlags As Variant) As String
     Const FUNC_NAME     As String = "pvGetFlags"
     Dim lIdx            As Long
@@ -656,32 +681,33 @@ EH:
 End Function
 
 Private Function pvSplitArgs(sText As String) As Variant
-    Const FUNC_NAME     As String = "pvSplitArgs"
-    Dim oMatches        As Object
     Dim vRetVal         As Variant
+    Dim lPtr            As Long
+    Dim lArgc           As Long
     Dim lIdx            As Long
+    Dim lArgPtr         As Long
     
-    On Error GoTo EH
-    With CreateObject("VBScript.RegExp")
-        .Global = True
-        .Pattern = """([^""]*(?:""""[^""]*)*)""|([^ ]+)"
-        Set oMatches = .Execute(sText)
-        If oMatches.Count > 0 Then
-            ReDim vRetVal(0 To oMatches.Count - 1) As String
-            For lIdx = 0 To oMatches.Count - 1
-                With oMatches(lIdx)
-                    vRetVal(lIdx) = Replace$(.SubMatches(0) & .SubMatches(1), """""", """")
-                End With
-            Next
-        Else
-            vRetVal = Split(vbNullString)
-        End If
-    End With
+    If LenB(sText) <> 0 Then
+        lPtr = CommandLineToArgvW(StrPtr(sText), lArgc)
+    End If
+    If lArgc > 0 Then
+        ReDim vRetVal(0 To lArgc - 1) As String
+        For lIdx = 0 To UBound(vRetVal)
+            Call CopyMemory(lArgPtr, ByVal lPtr + 4 * lIdx, 4)
+            vRetVal(lIdx) = SysAllocString(lArgPtr)
+        Next
+    Else
+        vRetVal = Split(vbNullString)
+    End If
+    Call LocalFree(lPtr)
     pvSplitArgs = vRetVal
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
+End Function
+
+Private Function SysAllocString(ByVal lPtr As Long) As String
+    Dim lTemp           As Long
+    
+    lTemp = ApiSysAllocString(lPtr)
+    Call CopyMemory(ByVal VarPtr(SysAllocString), lTemp, 4)
 End Function
 
 Private Function pvPathDifference(sBase As String, sFolder As String) As String
@@ -850,8 +876,8 @@ Private Function pvGetTempFileName() As String
     
     sFile = String(2000, 0)
     Call GetTempFileName(Environ$("TEMP"), "UMMM", 0, sFile)
-    If InStr(sFile, Chr$(0)) > 0 Then
-        pvGetTempFileName = Left$(sFile, InStr(sFile, Chr$(0)) - 1)
+    If InStr(sFile, vbNullChar) > 0 Then
+        pvGetTempFileName = Left$(sFile, InStr(sFile, vbNullChar) - 1)
     Else
         pvGetTempFileName = "C:\UMMM.tmp"
     End If
@@ -919,7 +945,7 @@ Private Function pvGetStringFileInfo(sFile As String, sKey As String) As String
     End If
     
     ' Strip out null termination (ASCII zero)
-    pvGetStringFileInfo = Replace(pvGetStringFileInfo, Chr$(0), "")
+    pvGetStringFileInfo = Replace(pvGetStringFileInfo, vbNullChar, vbNullString)
 QH:
 End Function
 
@@ -965,4 +991,3 @@ Private Function pvIsGuid(ByVal sValue As String) As Boolean
     Const EMPTY_GUID As String = "{00000000-0000-0000-0000-000000000000}"
     pvIsGuid = sValue Like Replace(EMPTY_GUID, "0", "[0-9a-fA-F]")
 End Function
-
