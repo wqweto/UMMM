@@ -136,6 +136,13 @@ Appends `supportedOS` tag.
       os_type        one of { vista, win7, win8, win81, win10 } or raw GUID as specified
                      by Microsoft. Multiple OSes can be included in a manifest
 
+#### MaxVersionTested
+
+Appends `maxversiontested` tag. List of Windows OS versions can be found here: https://learn.microsoft.com/en-ca/windows/apps/windows-sdk/downloads
+
+    Parameters       <os_version>
+      os_version     A 4-part Windows OS version string (e.g. 10.0.17763.7010)
+
 #### ActiveCodePage
 
 Appends `activeCodePage` tag for non-Unicode codepages. See https://docs.microsoft.com/en-us/windows/win32/sbscs/application-manifests#activeCodePage for more information.
