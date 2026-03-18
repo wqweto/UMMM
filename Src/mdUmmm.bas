@@ -2,7 +2,7 @@ Attribute VB_Name = "mdUmmm"
 '=========================================================================
 '
 '   Unattended Make My Manifest Project
-'   Copyright (c) 2009-2022 wqweto@gmail.com
+'   Copyright (c) 2009-2026 wqweto@gmail.com
 '
 '=========================================================================
 Option Explicit
@@ -50,7 +50,6 @@ Private Declare Function ApiSysAllocString Lib "oleaut32" Alias "SysAllocString"
 Private Const STR_OLEMISC       As String = "recomposeonresize|onlyiconic|insertnotreplace|static|cantlinkinside|canlinkbyole1|islinkobject|insideout|activatewhenvisible|renderingisdeviceindependent|invisibleatruntime|alwaysrun|actslikebutton|actslikelabel|nouiactivate|alignable|simpleframe|setclientsitefirst|imemode|ignoreativatewhenvisible|wantstomenumerge|supportsmultilevelundo"
 Private Const STR_LIBFLAG       As String = "restricted|control|hidden|hasdiskimage"
 Private Const STR_ATTRIB_MISCSTATUS As String = "miscStatus|miscStatusContent|miscStatusThumbnail|miscStatusIcon|miscStatusDocprint"
-Private Const STR_UTF_BOM       As String = "﻿"
 Private Const STR_PSOAINTERFACE As String = "{00020424-0000-0000-C000-000000000046}"
 Private Const STR_PSDISPATCH    As String = "{00020420-0000-0000-C000-000000000046}"
 
@@ -233,6 +232,7 @@ End Function
 
 Private Function pvDumpDependency(sLibName As String, sVersion As String, cOutput As Collection) As Boolean
     Const FUNC_NAME     As String = "pvDumpDependency"
+    Dim BOM_UTF8        As String: BOM_UTF8 = Chr$(&HEF) & Chr$(&HBB) & Chr$(&HBF)
     Dim sOutput         As String
     Dim sTempFile       As String
     Dim sManifest       As String
@@ -259,7 +259,7 @@ Private Function pvDumpDependency(sLibName As String, sVersion As String, cOutpu
             On Error Resume Next
             sManifest = m_oFSO.OpenTextFile(sTempFile, 1, False, 0).ReadAll()
             On Error GoTo EH
-            If Left$(sManifest, 3) = STR_UTF_BOM Then
+            If Left$(sManifest, 3) = BOM_UTF8 Then
                 sManifest = pvFromUtf8(Mid$(sManifest, 4))
             Else
                 sManifest = pvFromUtf8(sManifest)
@@ -382,7 +382,7 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, sTargetName 
                                 End If
                             End If
                         Else
-                            If .AttributeMask And (TYPEFLAG_FCANCREATE Or TYPEFLAG_FCONTROL) <> 0 Then
+                            If (.AttributeMask And (TYPEFLAG_FCANCREATE Or TYPEFLAG_FCONTROL)) <> 0 Then
                                 sVerIndProgID = .Parent.Name & "." & .Name
                                 If pvSearchCollection(m_cClasses, sVerIndProgID) Then
                                     ConsolePrint "warning: ProgID %1 already used for CLSID %2 (%3)" & vbCrLf, sVerIndProgID, m_cClasses(sVerIndProgID), .Guid
@@ -409,7 +409,7 @@ Private Function pvDumpClasses(sFile As String, sClasses As String, sTargetName 
                                 sVerIndProgID = pvRegGetValue("CLSID\" & .Guid & "\VersionIndependentProgID", , pvRegGetValue("CLSID\" & .Guid & "\ProgID"))
                             End If
                         Else
-                            If .AttributeMask And (TYPEFLAG_FCANCREATE Or TYPEFLAG_FCONTROL) <> 0 Then
+                            If (.AttributeMask And (TYPEFLAG_FCANCREATE Or TYPEFLAG_FCONTROL)) <> 0 Then
                                 sVerIndProgID = .Parent.Name & "." & .Name
                             End If
                         End If
