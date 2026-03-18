@@ -106,7 +106,7 @@ End Function
 Private Function pvProcess(sFile As String) As String
     Const FUNC_NAME     As String = "pvProcess"
     Dim cOutput         As Collection
-    Dim cAppCompatCache As Collection
+    Dim cCompatRows     As Collection
     Dim vElem           As Variant
     Dim vRow            As Variant
     
@@ -114,7 +114,7 @@ Private Function pvProcess(sFile As String) As String
     Set m_cClasses = New Collection
     Set m_cInterfaces = New Collection
     Set cOutput = New Collection
-    Set cAppCompatCache = New Collection
+    Set cCompatRows = New Collection
     cOutput.Add "<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>"
     cOutput.Add "<assembly xmlns=""urn:schemas-microsoft-com:asm.v1"" manifestVersion=""1.0"" xmlns:asmv3=""urn:schemas-microsoft-com:asm.v3"">"
     Select Case pvGetCliRva(sFile)
@@ -165,10 +165,10 @@ Private Function pvProcess(sFile As String) As String
             Case "supportedos"
                 '--- supportedos <os_types>
                 '---   os_types are | separated OSes from { vista, win7, win8, win81 } or guids
-                cAppCompatCache.Add vRow
+                cCompatRows.Add vRow
             Case "maxversiontested"
                '--- maxversiontested #.#.#.#
-                cAppCompatCache.Add vRow
+                cCompatRows.Add vRow
             Case "longpathaware"
                 '--- longpathaware [on_off]
                 '---   on_off is true/false or 0/1
@@ -189,8 +189,8 @@ Private Function pvProcess(sFile As String) As String
         pvDumpDependency pvCanonicalPath(sFile), vbNullString, cOutput
     End Select
 QH:
-    If cAppCompatCache.Count > 0 Then
-       pvDumpAppCompatCache cAppCompatCache, cOutput
+    If cCompatRows.Count > 0 Then
+       pvDumpCompatibility cCompatRows, cOutput
     End If
     cOutput.Add "</assembly>"
     For Each vElem In cOutput
@@ -608,60 +608,50 @@ EH:
     Resume Next
 End Function
 
-Private Function pvDumpAppCompatCache(cAppCompatCache As Collection, cOutput As Collection) As Boolean
-    Const FUNC_NAME     As String = "pvDumpAppCompatCache"
-    Dim lCacheIdx       As Long
-    Dim lRowIdx         As Long
+Private Function pvDumpCompatibility(cRows As Collection, cOutput As Collection) As Boolean
+    Const FUNC_NAME     As String = "pvDumpCompatibility"
     Dim vRow            As Variant
+    Dim lIdx            As Long
     Dim sGuid           As String
+    Dim sVersion        As String
     
     On Error GoTo EH
-    If cAppCompatCache Is Nothing Then Err.Raise 5, , "AppCompat collection required."
-    If cAppCompatCache.Count = 0 Then Exit Function
     cOutput.Add "    <compatibility xmlns=""urn:schemas-microsoft-com:compatibility.v1"">"
     cOutput.Add "        <application>"
-    For lCacheIdx = 1 To cAppCompatCache.Count
-       vRow = cAppCompatCache(lCacheIdx)
-       For lRowIdx = 1 To UBound(vRow)
-          Select Case LCase$(At(vRow, 0))
-          Case "supportedos"
-             Select Case LCase$(At(vRow, lRowIdx))
-             Case "vista"
+    For Each vRow In cRows
+        For lIdx = 1 To UBound(vRow)
+            sGuid = vbNullString
+            sVersion = vbNullString
+            Select Case LCase$(At(vRow, lIdx))
+            Case "vista"
                 sGuid = "{e2011457-1546-43c5-a5fe-008deee3d3f0}"
-             Case "win7"
+            Case "win7"
                 sGuid = "{35138b9a-5d96-4fbd-8e2d-a2440225f93a}"
-             Case "win8"
+            Case "win8"
                 sGuid = "{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}"
-             Case "win81"
+            Case "win81"
                 sGuid = "{1f676c76-80e1-4239-95bb-83d0f6d0da78}"
-             Case "win10"
+            Case "win10"
                 sGuid = "{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"
-             Case Else
-                If pvIsGuid(At(vRow, lRowIdx)) Then
-                    sGuid = At(vRow, lRowIdx)
-                Else
-                    sGuid = vbNullString
+            Case Else
+                If pvIsGuid(At(vRow, lIdx)) Then
+                    sGuid = At(vRow, lIdx)
+                ElseIf At(vRow, lIdx) Like "[0-9]*" Then
+                    sVersion = At(vRow, lIdx)
                 End If
-             End Select
-             If LenB(sGuid) <> 0 Then
-                 cOutput.Add Printf("            <supportedOS Id=""%1"" />", sGuid)
-             End If
-          Case "maxversiontested"
-            If pvIsVersionString(At(vRow, 1)) Then
-                 cOutput.Add Printf("            <maxversiontested Id=""%1"" />", At(vRow, 1))
-            Else
-                Err.Raise 5, , "Bad Maximum Version Tested value (must be #.#.#.# format version string): " & At(vRow, 1)
+            End Select
+            If LenB(sGuid) <> 0 Then
+                cOutput.Add Printf("            <supportedOS Id=""%1"" />", sGuid)
             End If
-          Case Else
-             ' Unknown parameter!
-             Err.Raise 5, , "Unknown appcompat cache value: " & At(vRow, 0)
-          End Select
+            If LenB(sVersion) <> 0 Then
+                cOutput.Add Printf("            <maxversiontested Id=""%1"" />", sVersion)
+            End If
        Next
     Next
     cOutput.Add "        </application>"
     cOutput.Add "    </compatibility>"
     '--- success
-    pvDumpAppCompatCache = True
+    pvDumpCompatibility = True
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -1019,19 +1009,4 @@ Private Function pvIsGuid(ByVal sValue As String) As Boolean
     pvIsGuid = sValue Like Replace(EMPTY_GUID, "0", "[0-9a-fA-F]")
 End Function
 
-Private Function pvIsVersionString(ByVal sValue As String) As Boolean
-    ' Returns True if passed string is in #.#.#.# version number format
-    Dim aParts()     As String
-    Dim lPart        As Long
-    
-    aParts = Split(sValue, ".")
-    If UBound(aParts) <> 3 Then Exit Function   ' String doesn't have 4 version sections
-    
-    For lPart = LBound(aParts) To UBound(aParts)
-       If Len(aParts(lPart)) = 0 Then Exit Function
-       If (aParts(lPart) Like "*[!0-9]*") Then Exit Function   ' Part contains non numeric character
-    Next
-    
-    pvIsVersionString = True
-End Function
 
